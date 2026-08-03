@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style data-omelette-injected>html,body{background:transparent}</style><script data-omelette-injected>(()=>{{const W=new URLSearchParams(location.search).get("theme");if(W==="light"||W==="dark"){document.documentElement.dataset.theme=W}}{if(new URLSearchParams(location.search).get("_omthumb")==="1"){const W=(q)=>{const X=q.focus;if(!X)return;q.focus=function(H){X.call(this,{...H,preventScroll:true})}};W(HTMLElement.prototype);W(SVGElement.prototype);if(typeof MathMLElement!=="undefined"){W(MathMLElement.prototype)}const $=(q)=>{q.removeAttribute("autofocus");q.inert=true;if(!(q instanceof HTMLElement))q.removeAttribute("tabindex")};const z=(q)=>{if(q.hasAttribute("autofocus"))$(q);for(const X of q.querySelectorAll("[autofocus]")){$(X)}};z(document.documentElement);new MutationObserver((q)=>{for(const X of q){for(const H of X.addedNodes){if(H.nodeType===1)z(H)}}}).observe(document,{childList:true,subtree:true})}}{const W=()=>{try{if(document.querySelector('meta[name="color-scheme"]'))return;const $=getComputedStyle(document.documentElement).getPropertyValue("color-scheme").trim();if($&&$!=="normal")return;const z=(j)=>{if(!j)return null;const F=getComputedStyle(j).backgroundColor.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?\s*\)$/);if(!F)return null;const G=F[4]==null?1:parseFloat(F[4])/(F[4].endsWith("%")?100:1);if(G<0.99)return null;return[+F[1],+F[2],+F[3]]};const q=z(document.body)||z(document.documentElement);if(!q)return;const X=(j)=>{const F=j/255;return F<=0.04045?F/12.92:((F+0.055)/1.055)**2.4};const H=0.2126*X(q[0])+0.7152*X(q[1])+0.0722*X(q[2]);document.documentElement.style.setProperty("color-scheme",H<0.4?"dark":"light")}catch{}};if(document.readyState==="complete")W();else window.addEventListener("load",W)}var b=[];var p=false;var u=30000;var d=3000;document.addEventListener("DOMContentLoaded",()=>{const W=window.Babel;const $="om-src-id";if(W&&W.registerPlugin&&!(W.availablePlugins&&W.availablePlugins[$])){W.registerPlugin($,({types:H})=>({visitor:{JSXOpeningElement(j,F){const G=j.node;if(G.name&&G.name.type==="JSXMemberExpression")return;for(let Q=0;Q<G.attributes.length;Q++){const V=G.attributes[Q];if(V.type==="JSXAttribute"&&V.name&&V.name.name==="data-om-id")return}const P=F.file&&F.file.opts&&F.file.opts.filename||"?";const R=G.loc&&G.loc.start;const J=`jsx:${P}:${G.start??0}:${R?R.line:0}:${R?R.column+1:0}`;G.attributes.push(H.jsxAttribute(H.jsxIdentifier("data-om-id"),H.stringLiteral(J)))}}}))}const z="om-text-extract";let q=false;if(p&&W&&W.registerPlugin&&!(W.availablePlugins&&W.availablePlugins[z])){const H=window.React;if(H&&H.useSyncExternalStore&&H.createElement){q=true;const j={};const F=new Set;let G=0;window.__omTextO=j;window.__omTextSet=(J)=>{for(const Q in J){const V=J[Q];if(V==null)delete j[Q];else j[Q]=V}G++;F.forEach((Q)=>Q())};const P=(J)=>{F.add(J);return()=>F.delete(J)};const R=()=>G;window.__OmT=function J(Q){H.useSyncExternalStore(P,R,R);return H.createElement("span",{"data-om-text":Q.i,className:"__om-t"},Q.i in j?j[Q.i]:Q.children)};W.registerPlugin(z,({types:J})=>{const Q={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const V={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const Y=(K,M)=>J.logicalExpression("??",J.memberExpression(J.logicalExpression("||",J.memberExpression(J.identifier("window"),J.identifier("__omTextO")),J.objectExpression([])),J.stringLiteral(K),true),M);const Z=(K)=>K.file&&K.file.opts&&K.file.opts.filename||"?";const B=(K)=>K.file&&K.file.code||"";const U=(K,M)=>{const L=(D)=>D&&D.start!=null&&D.end!=null&&(D.type==="StringLiteral"||D.type==="TemplateLiteral"&&D.expressions.length===0)?[D.start,D.end]:null;const N=L(M);if(N)return N;if(M&&M.type==="Identifier"){const D=K.scope.getBinding(M.name);if(D&&D.constant&&D.path.node.type==="VariableDeclarator"){return L(D.path.node.init)}}return null};const x=(K,M,L)=>{const N=K.node;let D=false;const f=(w,A)=>{D=true;return J.jsxElement(J.jsxOpeningElement(J.jsxIdentifier("__OmT"),[J.jsxAttribute(J.jsxIdentifier("i"),J.stringLiteral(w))],false),J.jsxClosingElement(J.jsxIdentifier("__OmT")),[A],false)};const C=N.children.map((w)=>{if(w.type==="JSXText"){if(w.start==null||w.end==null)return w;const A=L.slice(w.start,w.end);const S=A.length-A.trimStart().length;const O=A.length-A.trimEnd().length;if(S+O>=A.length)return w;return f(`txt:${M}:${w.start+S}:${w.end-O}`,w)}if(w.type==="JSXExpressionContainer"){const A=U(K,w.expression);if(A)return f(`str:${M}:${A[0]}:${A[1]}`,w)}return w});if(D)N.children=C};return{visitor:{JSXOpeningElement(K,M){const L=K.node;const N=Z(M);const D={};for(let f=0;f<L.attributes.length;f++){const C=L.attributes[f];if(C.type!=="JSXAttribute"||!C.name)continue;const w=C.name.name;if(!V[w])continue;if(!C.value||C.value.type!=="StringLiteral")continue;if(C.value.start==null||C.value.end==null)continue;const A=`txt:${N}:${C.value.start}:${C.value.end}`;D[w]=A;C.value=J.jsxExpressionContainer(Y(A,J.stringLiteral(C.value.value)))}if(Object.keys(D).length){L.attributes.push(J.jsxAttribute(J.jsxIdentifier("data-om-text-attrs"),J.stringLiteral(JSON.stringify(D))))}},JSXElement(K,M){const L=K.node.openingElement;const N=L&&L.name&&L.name.name;if(N==="__OmT")return;if(typeof N==="string"&&Q[N])return;x(K,Z(M),B(M))},JSXFragment(K,M){x(K,Z(M),B(M))}}}})}}const X=q?["transform-react-jsx-source",$,z]:["transform-react-jsx-source",$];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((H,j)=>{const F=H.getAttribute("data-plugins")||"";const G=X.filter((P)=>F.indexOf(P)<0);if(G.length){H.setAttribute("data-plugins",F?`${F},${G.join(",")}`:G.join(","))}if(!H.hasAttribute("data-filename")){H.setAttribute("data-filename",H.getAttribute("src")||`inline-${j}`)}})});var I=window.parent;var g="not editable here — open the project in the Claude Design editor to save";var n=()=>Promise.resolve({persisted:false,noHost:true,reason:g});var k=n;var v="data/storage.json";var l=()=>{try{const W=new URL(document.baseURI);const $=W.pathname.match(/\/projects\/([^/]+)\/serve\//);if($)return $[1];return W.hostname.split(".")[0]||""}catch{return location.hostname.split(".")[0]||""}};var o=()=>{try{const W=new URL(document.baseURI);const $=W.pathname.indexOf("/serve/");if($>=0)return W.origin+W.pathname.slice(0,$+"/serve/".length)+v}catch{}return"./"+v};var E=null;var _=()=>{if(!E){E=fetch(o(),{cache:"no-store"}).then((W)=>{if(W.ok)return W.text();return W.status===404?"":null}).catch(()=>null).then((W)=>{if(W===null){E=null;return null}const $=new Map;if(!W)return $;let z;try{z=JSON.parse(W)}catch{console.warn("[omelette.storage] "+v+" is not valid JSON; treating the store as unreadable so a save cannot overwrite the "+"hand-edited bytes. Fix the JSON (or delete the file) to re-enable persistence.");E=null;return null}if(z===null||typeof z!=="object"||Array.isArray(z)){console.warn("[omelette.storage] "+v+" doesn't hold a JSON object; treating the store as unreadable so a save cannot "+"overwrite the hand-edited bytes. Make the top level a JSON object to re-enable persistence.");E=null;return null}const q=z;if("data"in q){const X=q.data;if(X===null||typeof X!=="object"||Array.isArray(X)){console.warn("[omelette.storage] "+v+' has a "data" field that is not a JSON object; treating the store as unreadable so a '+'save cannot overwrite the hand-edited bytes. Make "data" a JSON object to re-enable persistence.');E=null;return null}const H=q._meta;const j=H!==null&&typeof H==="object"?H.project:undefined;if(typeof j==="string"&&j!==""&&j!==l())return $;for(const F of Object.keys(X))$.set(F,X[F]);return $}for(const X of Object.keys(q)){if(X!=="_meta")$.set(X,q[X])}return $})}return E};var y=(W)=>k(v,JSON.stringify({_meta:{project:l(),version:1},data:Object.fromEntries(W)},null,2));var m=Promise.resolve();var T=(W)=>{const $=m.then(W);m=$.then(()=>{return},()=>{return});return $};var s=/sk-(?:ant-)?[A-Za-z0-9_-]{16,}|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9]{20,}|xox[a-z]-[A-Za-z0-9][A-Za-z0-9-]{9,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----/;var a=/password|passwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|credential/i;var r=(W,$,z)=>{if(s.test($)||a.test(W)&&typeof z==="string"&&z.length>=8){console.warn('[omelette.storage] the value for "'+W+'" looks like a credential. The storage file is a plaintext project file — visible to '+"everyone with project access and copied when the project is duplicated. Do not store secrets here.")}};var c={persisted:false,reason:"could not load the existing store — not overwriting it"};var i={persisted:false,reason:"stored value changed since a failed read — re-read this key before saving"};var h=new Set;var t={get:(W)=>{if(typeof W!=="string"){return Promise.reject(new TypeError("storage.get: key must be a string"))}return T(_).then(($)=>{if($===null){h.add(W);return null}h.delete(W);if(!$.has(W))return null;const z=$.get(W);return z==null?null:JSON.parse(JSON.stringify(z))})},set:(W,$)=>{if(typeof W!=="string"){return Promise.reject(new TypeError("storage.set: key must be a string"))}let z;try{z=JSON.stringify($)}catch(X){return Promise.reject(new TypeError("storage.set: value must be JSON-serializable ("+String(X)+")"))}if(z===undefined){return Promise.reject(new TypeError("storage.set: value must be JSON-serializable"))}r(W,z,$);const q=JSON.parse(z);return T(()=>_().then((X)=>{if(X===null)return c;if(h.has(W)){if(X.has(W))return i;h.delete(W)}X.set(W,q);return y(X)}))},delete:(W)=>{if(typeof W!=="string"){return Promise.reject(new TypeError("storage.delete: key must be a string"))}return T(()=>_().then(($)=>{if($===null)return c;if(h.has(W)){if($.has(W))return i;h.delete(W)}$.delete(W);return y($)}))},keys:()=>T(_).then((W)=>W===null?[]:Array.from(W.keys()))};window.omelette={writeFile:(W,$)=>k(W,$).then((z)=>{if(!z.persisted&&!z.noHost){throw new Error(z.reason||"write failed")}}),storage:t};if(I&&I!==window){const W=(J,Q)=>{try{I.postMessage({__omelette_log:true,type:J,data:Q},"*")}catch{}};["log","warn","error"].forEach((J)=>{const Q=console[J];console[J]=(...V)=>{const Y=V.map((Z)=>{try{return typeof Z==="object"?JSON.stringify(Z):String(Z)}catch{try{return String(Z)}catch{return"[unstringifiable]"}}}).join(" ");W(J,Y);Q.apply(console,V)}});window.addEventListener("error",(J)=>{const Q=J.target;if(Q&&Q!==window&&Q.tagName){const V=Q.src||Q.href||"";W("resource_error",`${Q.tagName} failed to load: ${V}`)}else{W("error",`${J.message||"Unknown error"} at ${J.filename||"?"}:${J.lineno||0}:${J.colno||0}`)}},true);window.addEventListener("unhandledrejection",(J)=>{const Q=J.reason;const V=Q instanceof Error?`${Q.message} ${Q.stack}`:String(Q);W("error",`Unhandled rejection: ${V}`)});window.addEventListener("click",(J)=>{if(J.defaultPrevented||J.button!==0)return;if(J.metaKey||J.ctrlKey||J.shiftKey||J.altKey)return;const Q=J.composedPath?J.composedPath():[];const V=["button","input","select","textarea","summary","label"];let Y=null;for(const x of Q){if(!(x instanceof Element))continue;if(x.localName==="a"){if(!(x instanceof HTMLAnchorElement))return;Y=x;break}if(V.indexOf(x.localName)!==-1)return}if(!Y)return;if(Y.isContentEditable)return;const Z=Y.closest("[contenteditable]");if(Z&&Z.getAttribute("contenteditable")!=="false")return;const B=(Y.getAttribute("target")||"_self").toLowerCase();if(B!=="_self"&&B!=="_top"&&B!=="_parent")return;let U;try{U=new URL(Y.href)}catch{return}if(U.protocol!=="http:"&&U.protocol!=="https:")return;if(location.origin==="null")return;if(U.origin===location.origin)return;J.preventDefault();window.open(U.href,"_blank","noopener,noreferrer")});const $=()=>{try{I.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(window.ResizeObserver)new ResizeObserver($).observe(document.documentElement);const z=()=>{$();if(!document.querySelector('script[type="text/babel"],script[type="text/jsx"]'))return;const J=()=>document.getElementById("root")||document.querySelector("body > div[id]");const Q=J()?.firstElementChild??null;let V=0;const Y=()=>{const Z=J();if(Z&&Z.firstElementChild!==Q||++V>30){$();return}setTimeout(Y,100)};setTimeout(Y,100)};if(document.readyState==="complete")z();else window.addEventListener("load",z);const q={};let X=0;const H=(J)=>new Promise((Q,V)=>{if(!b.length){V(new Error("claude.complete: no parent origin"));return}const Y=`c${++X}`;const Z=()=>setTimeout(()=>{delete q[Y];V(new Error(`claude.complete: no data for ${u/1000}s`))},u);const B=Z();q[Y]={resolve:Q,reject:V,text:"",t:B,arm:Z};try{for(const U of b){I.postMessage({__om_api:true,id:Y,body:J},U)}}catch(U){clearTimeout(B);delete q[Y];V(U)}});const j=8;const F=async(J,Q)=>{if(!Array.isArray(J.messages)){throw new Error("claude.complete: tools require a messages array")}const V=J.messages.slice();const Y={...J,tools:J.tools.map((U)=>{if(U===null||typeof U!=="object")return U;const x={};for(const K of Object.keys(U)){if(typeof U[K]!=="function")x[K]=U[K]}return x})};const Z=Y.tool_choice;const B=Z!=null&&(Z.type==="any"||Z.type==="tool")?{...Y,tool_choice:Z.disable_parallel_tool_use!==undefined?{type:"auto",disable_parallel_tool_use:Z.disable_parallel_tool_use}:{type:"auto"}}:Y;for(let U=0;U<j;U++){const x=await H({...U===0?Y:B,messages:V});const K=x.message;const M=K&&Array.isArray(K.content)?K.content:null;const L=M?M.filter((D)=>D?.type==="tool_use"):[];if(K?.stop_reason!=="tool_use"||L.length===0){return x.text}const N=[];for(const D of L){const f=Q.get(D.name);if(!f){N.push({type:"tool_result",tool_use_id:D.id,content:`no handler for tool "${D.name}"`,is_error:true});continue}try{const C=await f(D.input);const w=typeof C==="string"?C:R(C)??"";N.push({type:"tool_result",tool_use_id:D.id,content:w})}catch(C){N.push({type:"tool_result",tool_use_id:D.id,content:String(C?.message??C??"tool handler failed"),is_error:true})}}V.push({role:"assistant",content:M},{role:"user",content:N})}throw new Error(`claude.complete: exceeded ${j} tool turns`)};window.claude={complete(J){const Q=J;if(Q!==null&&typeof Q==="object"&&Array.isArray(Q.tools)&&Q.tools.some((V)=>V!==null&&typeof V==="object"&&typeof V.run==="function")){const V=new Map;for(const Y of Q.tools){if(Y!==null&&typeof Y==="object"&&typeof Y.run==="function"){V.set(String(Y.name),Y.run)}}return F(Q,V)}return H(J).then((V)=>V.text)}};const G={};let P=0;k=(J,Q)=>new Promise((V)=>{if(!b.length){V({persisted:false,noHost:true,reason:g});return}const Y=`f${++P}`;const Z=setTimeout(()=>{delete G[Y];V({persisted:false,noHost:true,reason:g})},d);G[Y]={settle:V,t:Z};try{for(const B of b){I.postMessage({__om_file:true,id:Y,op:"write",path:J,content:Q},B)}}catch{clearTimeout(Z);delete G[Y];V({persisted:false,noHost:true,reason:g})}});const R=(J)=>{try{return JSON.stringify(J)}catch{return JSON.stringify(String(J))}};window.addEventListener("message",(J)=>{if(b.indexOf(J.origin)<0)return;if(J.source!==I)return;const Q=J.data;if(!Q)return;if(Q.type==="omelette-preview-refresh"){if(typeof Q.token!=="string"||!/^[0-9a-f.-]+(\.(rc|pr-[0-9]+))?(\.[0-9]+\.[0-9a-f]{16})?$/.test(Q.token))return;const Z=Math.max(1,Math.floor((Q.expiresAt||0)-Date.now()/1000));document.cookie="__Host-omelette-preview="+Q.token+"; Path=/; Secure; SameSite=None; Partitioned; Max-Age="+Z;return}if(Q.__om_file_r){const Z=G[Q.id];if(!Z)return;clearTimeout(Z.t);delete G[Q.id];Z.settle(Q.ok?{persisted:true}:{persisted:false,reason:Q.error||"write failed"});return}if(Q.__om_api_r){const Z=q[Q.id];if(!Z)return;if(Q.error!=null){clearTimeout(Z.t);delete q[Q.id];Z.reject(new Error(Q.error));return}if(Q.chunk!=null){clearTimeout(Z.t);Z.t=Z.arm();Z.text+=Q.chunk;return}if(Q.done){clearTimeout(Z.t);delete q[Q.id];Z.resolve({text:Q.text!=null?Q.text:Z.text,message:Q.message});return}return}if(!Q.__om_eval)return;const V=Q;const Y=(Z)=>{J.source.postMessage({...Z,__om_eval_r:1,id:V.id},J.origin)};try{const Z=(0,eval)(V.code);if(Z&&typeof Z.then==="function"){Z.then((B)=>Y({ok:1,v:R(B)}),(B)=>Y({ok:0,e:String(B)}))}else{Y({ok:1,v:R(Z)})}}catch(Z){Y({ok:0,e:String(Z)})}})}})();
+</script>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/thirdbase-design-system-3d380fa6-a32e-4c5d-8d0f-3e5f82d02e97/styles.css">
+<script src="_ds/thirdbase-design-system-3d380fa6-a32e-4c5d-8d0f-3e5f82d02e97/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  html, body { margin:0; padding:0; background:#F7F8F9; }
+  body, input, select, textarea, button { font-family:'Instrument Sans', system-ui, sans-serif; }
+  * { box-sizing:border-box; }
+  a { color:#3355FF; text-decoration:none; }
+  a:hover { color:#FF442B; }
+  input:focus, textarea:focus, select:focus { outline:2px solid rgba(51,85,255,.35); outline-offset:0; }
+  ::selection { background:#FF442B; color:#fff; }
+  .tb-scroll::-webkit-scrollbar { width:10px; height:10px; }
+  .tb-scroll::-webkit-scrollbar-thumb { background:#D8DBE0; border:3px solid transparent; background-clip:content-box; border-radius:99px; }
+</style>
+</helmet>
+
+<div style="height:100vh; width:100%; overflow:hidden; background:#F7F8F9; color:#181818;">
+
+  <sc-if value="{{ visLogin }}" hint-placeholder-val="{{ true }}">
+    <div style="height:100vh; display:grid; grid-template-columns:1fr 1fr;">
+      <div style="background:#181818; color:#F7F8F9; padding:56px; display:flex; flex-direction:column; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:grid; grid-template-columns:9px 9px; gap:3px; transform:rotate(45deg);">
+            <div style="width:9px;height:9px;background:#FF442B"></div><div style="width:9px;height:9px;background:#FF442B"></div>
+            <div style="width:9px;height:9px;background:#FF442B"></div><div style="width:9px;height:9px;background:#FF442B"></div>
+          </div>
+          <span style="font-size:19px; font-weight:600; letter-spacing:-0.01em;">thirdbase</span>
+        </div>
+        <div>
+          <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:20px;">Internt projektstyringsværktøj</div>
+          <div style="font-size:48px; line-height:1.05; font-weight:400; letter-spacing:-0.02em; max-width:14ch; text-wrap:pretty;">Alle kunder. Ét overblik.</div>
+          <div style="font-size:16px; color:#9E9E9E; margin-top:24px; max-width:44ch; line-height:1.5;">Boards, opgaver og deadlines for hver kunde vi arbejder med — samlet ét sted.</div>
+        </div>
+        <div style="font-size:13px; color:#6E6E6E;">thirdbase ApS · intern adgang</div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:center; padding:56px;">
+        <div style="width:100%; max-width:380px;">
+          <div style="font-size:28px; font-weight:600; letter-spacing:-0.02em;">Log ind</div>
+          <div style="font-size:15px; color:#6E6E6E; margin-top:8px;">Brug din thirdbase-konto.</div>
+
+          <div style="display:flex; flex-direction:column; gap:16px; margin-top:32px;">
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:13px; font-weight:500; color:#4A4A4A;">E-mail
+              <input value="{{ loginEmail }}" onChange="{{ saetEmail }}" placeholder="navn@thirdbase.dk" style="height:44px; border:1px solid #DDE0E5; background:#fff; padding:0 14px; font-size:15px; color:#181818;">
+            </label>
+            <label style="display:flex; flex-direction:column; gap:7px; font-size:13px; font-weight:500; color:#4A4A4A;">Adgangskode
+              <input type="password" value="{{ loginKode }}" onChange="{{ saetKode }}" placeholder="••••••••" style="height:44px; border:1px solid #DDE0E5; background:#fff; padding:0 14px; font-size:15px; color:#181818;">
+            </label>
+            <sc-if value="{{ loginFejl }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:13px; color:#FF442B;">Forkert e-mail eller adgangskode.</div>
+            </sc-if>
+            <button onClick="{{ logInd }}" style="height:46px; background:#FF442B; color:#fff; border:0; font-size:15px; font-weight:600; cursor:pointer;" style-hover="background:#E23A22">Log ind</button>
+          </div>
+
+          <div style="margin-top:40px; border-top:1px solid #E6E8EC; padding-top:20px;">
+            <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:12px;">Demo · vælg konto</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <sc-for list="{{ brugere }}" as="b" hint-placeholder-count="4">
+                <button onClick="{{ b.vaelg }}" style="display:flex; align-items:center; gap:12px; background:transparent; border:1px solid transparent; padding:8px; cursor:pointer; text-align:left;" style-hover="border-color:#DDE0E5; background:#fff">
+                  <div style="{{ b.avatarStil }}">{{ b.ini }}</div>
+                  <span style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:14px; font-weight:500; color:#181818;">{{ b.navn }}</span>
+                    <span style="font-size:12px; color:#9E9E9E;">{{ b.rolle }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ visApp }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid; grid-template-columns:264px 1fr; height:100vh;">
+
+      <div class="tb-scroll" style="background:#181818; color:#F7F8F9; display:flex; flex-direction:column; overflow-y:auto;">
+        <div style="padding:20px 18px 16px; display:flex; align-items:center; gap:10px;">
+          <div style="display:grid; grid-template-columns:8px 8px; gap:2.5px; transform:rotate(45deg);">
+            <div style="width:8px;height:8px;background:#FF442B"></div><div style="width:8px;height:8px;background:#FF442B"></div>
+            <div style="width:8px;height:8px;background:#FF442B"></div><div style="width:8px;height:8px;background:#FF442B"></div>
+          </div>
+          <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">thirdbase</span>
+        </div>
+
+        <div style="padding:0 10px; display:flex; flex-direction:column; gap:2px;">
+          <button onClick="{{ gaaMitArbejde }}" style="{{ stilMitArbejde }}">Mit arbejde</button>
+          <button onClick="{{ gaaOverblik }}" style="{{ stilOverblik }}">Overblik · alle kunder</button>
+        </div>
+
+        <div style="padding:24px 18px 8px; display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:#7A7A7A;">Kunder</span>
+          <button onClick="{{ aabnNyKunde }}" title="Ny kunde" style="width:20px; height:20px; border:1px solid #3A3A3A; background:transparent; color:#F7F8F9; font-size:13px; line-height:1; cursor:pointer;" style-hover="border-color:#FF442B; color:#FF442B">+</button>
+        </div>
+
+        <div style="padding:0 10px 24px; display:flex; flex-direction:column; gap:1px;">
+          <sc-for list="{{ sidebarKunder }}" as="k" hint-placeholder-count="3">
+            <div>
+              <button onClick="{{ k.toggle }}" style="{{ k.stil }}">
+                <span style="width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#fff; flex:none; background:#33343A;">{{ k.kort }}</span>
+                <span style="flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ k.navn }}</span>
+                <span style="font-size:9px; color:#7A7A7A;">{{ k.pil }}</span>
+              </button>
+              <sc-if value="{{ k.aaben }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column; gap:1px; padding:2px 0 8px 34px;">
+                  <button onClick="{{ k.gaaDashboard }}" style="{{ k.stilDashboard }}">Dashboard</button>
+                  <sc-for list="{{ k.boards }}" as="b" hint-placeholder-count="3">
+                    <button onClick="{{ b.gaa }}" style="{{ b.stil }}">{{ b.navn }}</button>
+                  </sc-for>
+                  <button onClick="{{ k.nytBoard }}" style="text-align:left; background:transparent; border:0; color:#6E6E6E; font-size:12px; padding:6px 8px; cursor:pointer;" style-hover="color:#FF442B">+ Nyt board</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:auto; padding:14px 16px; border-top:1px solid #2A2A2A; display:flex; align-items:center; gap:10px;">
+          <div style="{{ mig.avatarStil }}">{{ mig.ini }}</div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:13px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ mig.navn }}</div>
+            <div style="font-size:11px; color:#7A7A7A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ mig.rolle }}</div>
+          </div>
+          <button onClick="{{ logUd }}" title="Log ud" style="background:transparent; border:0; color:#7A7A7A; font-size:11px; cursor:pointer;" style-hover="color:#FF442B">Log ud</button>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; min-width:0; height:100vh;">
+
+        <div style="height:64px; flex:none; background:#fff; border-bottom:1px solid #E6E8EC; display:flex; align-items:center; gap:20px; padding:0 28px; position:relative; z-index:40;">
+          <div style="min-width:0;">
+            <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E;">{{ topEyebrow }}</div>
+            <div style="font-size:18px; font-weight:600; letter-spacing:-0.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ topTitel }}</div>
+          </div>
+
+          <div style="margin-left:auto; position:relative; width:340px;">
+            <input value="{{ soeg }}" onChange="{{ saetSoeg }}" placeholder="Søg i opgaver og kunder…" style="width:100%; height:38px; border:1px solid #E1E4E9; background:#F7F8F9; padding:0 14px; font-size:14px;">
+            <sc-if value="{{ visSoegeResultat }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; top:44px; left:0; right:0; background:#fff; border:1px solid #E1E4E9; box-shadow:0 12px 32px rgba(24,24,24,.12); max-height:380px; overflow:auto;">
+                <sc-for list="{{ soegeResultater }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.gaa }}" style="display:block; width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid #F0F1F4; padding:10px 14px; cursor:pointer;" style-hover="background:#F7F8F9">
+                    <div style="font-size:14px; color:#181818;">{{ r.navn }}</div>
+                    <div style="font-size:12px; color:#9E9E9E; margin-top:2px;">{{ r.sti }}</div>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ ingenSoegeResultater }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:14px; font-size:13px; color:#9E9E9E;">Ingen resultater.</div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+
+          <div style="position:relative;">
+            <button onClick="{{ toggleNoti }}" style="width:38px; height:38px; border:1px solid #E1E4E9; background:#fff; cursor:pointer; position:relative; font-size:15px;" style-hover="border-color:#181818">
+              <span>🔔</span>
+              <span style="position:absolute; top:-6px; right:-6px; min-width:17px; height:17px; background:#FF442B; color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 4px;">{{ notiAntal }}</span>
+            </button>
+            <sc-if value="{{ visNoti }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; top:44px; right:0; width:360px; background:#fff; border:1px solid #E1E4E9; box-shadow:0 12px 32px rgba(24,24,24,.12);">
+                <div style="padding:12px 16px; border-bottom:1px solid #F0F1F4; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E;">Notifikationer</div>
+                <sc-for list="{{ notifikationer }}" as="n" hint-placeholder-count="4">
+                  <div style="padding:12px 16px; border-bottom:1px solid #F0F1F4; display:flex; gap:12px;">
+                    <div style="{{ n.prikStil }}"></div>
+                    <div>
+                      <div style="font-size:13px; line-height:1.45; color:#181818;">{{ n.tekst }}</div>
+                      <div style="font-size:11px; color:#9E9E9E; margin-top:3px;">{{ n.tid }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div class="tb-scroll" style="flex:1; overflow:auto; position:relative;">
+
+          <sc-if value="{{ erMitArbejde }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:32px 28px 64px; max-width:1100px;">
+              <div style="font-size:32px; font-weight:600; letter-spacing:-0.02em;">Hej {{ mig.fornavn }}</div>
+              <div style="font-size:15px; color:#6E6E6E; margin-top:8px;">Du har {{ mineAntal }} åbne opgaver fordelt på {{ mineKunder }} kunder.</div>
+
+              <div style="display:flex; flex-direction:column; gap:32px; margin-top:36px;">
+                <sc-for list="{{ mineGrupper }}" as="g" hint-placeholder-count="3">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                      <div style="{{ g.prikStil }}"></div>
+                      <div style="font-size:15px; font-weight:600;">{{ g.navn }}</div>
+                      <div style="font-size:13px; color:#9E9E9E;">{{ g.antal }}</div>
+                    </div>
+                    <div style="background:#fff; border:1px solid #E6E8EC;">
+                      <sc-for list="{{ g.opgaver }}" as="o" hint-placeholder-count="3">
+                        <div onClick="{{ o.aabn }}" style="display:grid; grid-template-columns:1fr 200px 150px 110px; gap:16px; align-items:center; padding:14px 18px; border-bottom:1px solid #F0F1F4; cursor:pointer;" style-hover="background:#FAFBFC">
+                          <div style="min-width:0;">
+                            <div style="font-size:15px; color:#181818; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ o.navn }}</div>
+                            <div style="font-size:12px; color:#9E9E9E; margin-top:3px;">{{ o.sti }}</div>
+                          </div>
+                          <div style="{{ o.chipStil }}">{{ o.status }}</div>
+                          <div style="font-size:13px; display:flex; align-items:center; gap:7px;"><span style="{{ o.prikStil }}"></span>{{ o.prioritet }}</div>
+                          <div style="{{ o.deadlineStil }}">{{ o.deadline }}</div>
+                        </div>
+                      </sc-for>
+                      <sc-if value="{{ g.tom }}" hint-placeholder-val="{{ false }}">
+                        <div style="padding:18px; font-size:13px; color:#9E9E9E;">Ingen opgaver.</div>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ erOverblik }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px 28px 64px;">
+              <div style="font-size:32px; font-weight:600; letter-spacing:-0.02em;">Overblik</div>
+              <div style="font-size:15px; color:#6E6E6E; margin-top:8px;">Arbejdsbelastning og status på tværs af alle kunder.</div>
+
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-top:32px;">
+                <sc-for list="{{ globalKpi }}" as="k" hint-placeholder-count="4">
+                  <div style="background:#fff; border:1px solid #E6E8EC; padding:20px;">
+                    <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E;">{{ k.label }}</div>
+                    <div style="{{ k.vaerdiStil }}">{{ k.vaerdi }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1.15fr 1fr; gap:16px; margin-top:16px; align-items:start;">
+                <div style="background:#fff; border:1px solid #E6E8EC; padding:24px;">
+                  <div style="font-size:15px; font-weight:600; margin-bottom:20px;">Arbejdsbelastning pr. teammedlem</div>
+                  <div style="display:flex; flex-direction:column; gap:18px;">
+                    <sc-for list="{{ belastning }}" as="p" hint-placeholder-count="4">
+                      <div>
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                          <div style="{{ p.avatarStil }}">{{ p.ini }}</div>
+                          <span style="font-size:14px; font-weight:500;">{{ p.navn }}</span>
+                          <span style="margin-left:auto; font-size:13px; color:#6E6E6E;">{{ p.tekst }}</span>
+                        </div>
+                        <div style="height:10px; background:#F0F1F4; display:flex;">
+                          <sc-for list="{{ p.segmenter }}" as="s" hint-placeholder-count="3">
+                            <div style="{{ s.stil }}" title="{{ s.titel }}"></div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="background:#fff; border:1px solid #E6E8EC; padding:24px;">
+                  <div style="font-size:15px; font-weight:600; margin-bottom:20px;">Åbne opgaver pr. kunde</div>
+                  <div style="display:flex; flex-direction:column; gap:14px;">
+                    <sc-for list="{{ kundeBelastning }}" as="k" hint-placeholder-count="3">
+                      <div onClick="{{ k.gaa }}" style="cursor:pointer;">
+                        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px;">
+                          <span>{{ k.navn }}</span><span style="color:#6E6E6E;">{{ k.antal }}</span>
+                        </div>
+                        <div style="height:8px; background:#F0F1F4;"><div style="{{ k.barStil }}"></div></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ erDashboard }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:32px 28px 64px;">
+              <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:16px;">
+                <sc-for list="{{ kundeKpi }}" as="k" hint-placeholder-count="4">
+                  <div style="background:#fff; border:1px solid #E6E8EC; padding:20px;">
+                    <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E;">{{ k.label }}</div>
+                    <div style="{{ k.vaerdiStil }}">{{ k.vaerdi }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:16px; align-items:start;">
+                <div style="background:#fff; border:1px solid #E6E8EC; padding:24px;">
+                  <div style="font-size:15px; font-weight:600; margin-bottom:20px;">Fordeling på status</div>
+                  <div style="display:flex; align-items:center; gap:24px;">
+                    <div style="{{ donutStil }}">
+                      <div style="position:absolute; inset:34px; background:#fff; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <div style="font-size:22px; font-weight:600;">{{ donutTotal }}</div>
+                        <div style="font-size:10px; color:#9E9E9E;">opgaver</div>
+                      </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:9px;">
+                      <sc-for list="{{ statusFordeling }}" as="s" hint-placeholder-count="5">
+                        <div style="display:flex; align-items:center; gap:9px; font-size:13px;">
+                          <span style="{{ s.prikStil }}"></span>
+                          <span style="color:#4A4A4A;">{{ s.navn }}</span>
+                          <span style="color:#9E9E9E;">{{ s.antal }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background:#fff; border:1px solid #E6E8EC; padding:24px;">
+                  <div style="font-size:15px; font-weight:600; margin-bottom:20px;">Opgaver pr. teammedlem</div>
+                  <div style="display:flex; align-items:flex-end; gap:18px; height:150px;">
+                    <sc-for list="{{ personSoejler }}" as="p" hint-placeholder-count="4">
+                      <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end;">
+                        <div style="font-size:13px; font-weight:600;">{{ p.antal }}</div>
+                        <div style="{{ p.stil }}"></div>
+                        <div style="font-size:11px; color:#9E9E9E;">{{ p.ini }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="background:#fff; border:1px solid #E6E8EC; padding:24px;">
+                  <div style="font-size:15px; font-weight:600; margin-bottom:20px;">Kommende deadlines</div>
+                  <div style="display:flex; flex-direction:column;">
+                    <sc-for list="{{ kommendeDeadlines }}" as="d" hint-placeholder-count="5">
+                      <div onClick="{{ d.aabn }}" style="display:flex; gap:12px; padding:10px 0; border-bottom:1px solid #F0F1F4; cursor:pointer;" style-hover="background:#FAFBFC">
+                        <div style="{{ d.datoStil }}">{{ d.dato }}</div>
+                        <div style="min-width:0;">
+                          <div style="font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ d.navn }}</div>
+                          <div style="font-size:11px; color:#9E9E9E; margin-top:2px;">{{ d.board }}</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ erBoard }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="background:#fff; border-bottom:1px solid #E6E8EC; padding:0 28px; display:flex; align-items:center; gap:28px; position:sticky; top:0; z-index:20;">
+                <div style="display:flex; gap:4px;">
+                  <sc-for list="{{ visninger }}" as="v" hint-placeholder-count="3">
+                    <button onClick="{{ v.vaelg }}" style="{{ v.stil }}">{{ v.navn }}</button>
+                  </sc-for>
+                </div>
+                <div style="margin-left:auto; display:flex; align-items:center; gap:8px; padding:10px 0;">
+                  <span style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-right:2px;">Filter</span>
+                  <select value="{{ filterPerson }}" onChange="{{ saetFilterPerson }}" style="height:32px; border:1px solid #E1E4E9; background:#fff; font-size:13px; padding:0 8px;">
+                    <option value="">Alle personer</option>
+                    <sc-for list="{{ brugere }}" as="b" hint-placeholder-count="4">
+                      <option value="{{ b.id }}">{{ b.navn }}</option>
+                    </sc-for>
+                  </select>
+                  <select value="{{ filterStatus }}" onChange="{{ saetFilterStatus }}" style="height:32px; border:1px solid #E1E4E9; background:#fff; font-size:13px; padding:0 8px;">
+                    <option value="">Alle statusser</option>
+                    <sc-for list="{{ statusListe }}" as="s" hint-placeholder-count="5">
+                      <option value="{{ s.navn }}">{{ s.navn }}</option>
+                    </sc-for>
+                  </select>
+                  <select value="{{ filterPrio }}" onChange="{{ saetFilterPrio }}" style="height:32px; border:1px solid #E1E4E9; background:#fff; font-size:13px; padding:0 8px;">
+                    <option value="">Alle prioriteter</option>
+                    <sc-for list="{{ prioListe }}" as="p" hint-placeholder-count="4">
+                      <option value="{{ p.navn }}">{{ p.navn }}</option>
+                    </sc-for>
+                  </select>
+                  <sc-if value="{{ harFilter }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ ryddFilter }}" style="height:32px; border:1px solid #FF442B; color:#FF442B; background:#fff; font-size:13px; padding:0 10px; cursor:pointer;">Ryd</button>
+                  </sc-if>
+                </div>
+              </div>
+
+              <sc-if value="{{ erTabel }}" hint-placeholder-val="{{ true }}">
+                <div style="padding:24px 28px 80px; min-width:1180px;">
+                  <div style="display:flex; flex-direction:column; gap:28px;">
+                    <sc-for list="{{ grupper }}" as="g" hint-placeholder-count="3">
+                      <div>
+                        <div onDragOver="{{ g.dragOver }}" onDrop="{{ g.drop }}" style="display:flex; align-items:center; gap:12px; padding:0 0 10px;">
+                          <button onClick="{{ g.toggle }}" style="{{ g.pilStil }}">{{ g.pil }}</button>
+                          <div style="{{ g.navnStil }}">{{ g.navn }}</div>
+                          <div style="font-size:12px; color:#9E9E9E;">{{ g.antal }} opgaver</div>
+                          <div style="width:170px; height:8px; display:flex; background:#F0F1F4; margin-left:8px;">
+                            <sc-for list="{{ g.fordeling }}" as="s" hint-placeholder-count="3">
+                              <div style="{{ s.stil }}" title="{{ s.titel }}"></div>
+                            </sc-for>
+                          </div>
+                        </div>
+
+                        <sc-if value="{{ g.aaben }}" hint-placeholder-val="{{ true }}">
+                          <div style="{{ g.boksStil }}">
+                            <div style="display:grid; grid-template-columns:minmax(300px,1fr) 132px 158px 128px 118px 176px minmax(180px,1fr); align-items:center; border-bottom:1px solid #F0F1F4; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#9E9E9E;">
+                              <div style="padding:10px 16px;">Opgave</div>
+                              <div style="padding:10px 12px;">Ansvarlig</div>
+                              <div style="padding:10px 12px;">Status</div>
+                              <div style="padding:10px 12px;">Prioritet</div>
+                              <div style="padding:10px 12px;">Deadline</div>
+                              <div style="padding:10px 12px;">Tidslinje</div>
+                              <div style="padding:10px 16px;">Noter</div>
+                            </div>
+
+                            <sc-for list="{{ g.raekker }}" as="r" hint-placeholder-count="4">
+                              <div draggable="true" onDragStart="{{ r.dragStart }}" onDragOver="{{ r.dragOver }}" onDrop="{{ r.drop }}">
+                                <div style="display:grid; grid-template-columns:minmax(300px,1fr) 132px 158px 128px 118px 176px minmax(180px,1fr); align-items:stretch; border-bottom:1px solid #F0F1F4; min-height:44px;" style-hover="background:#FAFBFC">
+                                  <div style="padding:0 16px; display:flex; align-items:center; gap:8px; min-width:0;">
+                                    <span style="color:#C4C7CE; font-size:12px; cursor:grab;">⠿</span>
+                                    <sc-if value="{{ r.harUnder }}" hint-placeholder-val="{{ true }}">
+                                      <button onClick="{{ r.toggleUnder }}" style="background:transparent; border:0; color:#9E9E9E; font-size:10px; cursor:pointer; padding:0; width:12px;">{{ r.underPil }}</button>
+                                    </sc-if>
+                                    <span onClick="{{ r.aabn }}" style="font-size:14px; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" style-hover="color:#3355FF">{{ r.navn }}</span>
+                                    <sc-if value="{{ r.harUnder }}" hint-placeholder-val="{{ true }}">
+                                      <span style="font-size:11px; color:#9E9E9E; flex:none;">{{ r.underTaeller }}</span>
+                                    </sc-if>
+                                    <span onClick="{{ r.aabn }}" style="margin-left:auto; font-size:11px; color:#C4C7CE; cursor:pointer; flex:none;" style-hover="color:#3355FF">{{ r.kommentarTaeller }}</span>
+                                  </div>
+                                  <div style="padding:0 12px; display:flex; align-items:center; gap:-6px;">
+                                    <sc-for list="{{ r.ansvarlige }}" as="a" hint-placeholder-count="2">
+                                      <div title="{{ a.navn }}" style="{{ a.stil }}">{{ a.ini }}</div>
+                                    </sc-for>
+                                  </div>
+                                  <div style="position:relative; border-left:1px solid #F0F1F4;">
+                                    <button onClick="{{ r.toggleStatus }}" style="{{ r.statusStil }}">{{ r.status }}</button>
+                                    <sc-if value="{{ r.statusAaben }}" hint-placeholder-val="{{ false }}">
+                                      <div style="position:absolute; top:100%; left:0; width:158px; background:#fff; border:1px solid #E1E4E9; box-shadow:0 10px 26px rgba(24,24,24,.14); z-index:30;">
+                                        <sc-for list="{{ r.statusValg }}" as="s" hint-placeholder-count="5">
+                                          <button onClick="{{ s.vaelg }}" style="{{ s.stil }}">{{ s.navn }}</button>
+                                        </sc-for>
+                                      </div>
+                                    </sc-if>
+                                  </div>
+                                  <div style="position:relative; border-left:1px solid #F0F1F4;">
+                                    <button onClick="{{ r.togglePrio }}" style="{{ r.prioStil }}">{{ r.prioritet }}</button>
+                                    <sc-if value="{{ r.prioAaben }}" hint-placeholder-val="{{ false }}">
+                                      <div style="position:absolute; top:100%; left:0; width:128px; background:#fff; border:1px solid #E1E4E9; box-shadow:0 10px 26px rgba(24,24,24,.14); z-index:30;">
+                                        <sc-for list="{{ r.prioValg }}" as="p" hint-placeholder-count="4">
+                                          <button onClick="{{ p.vaelg }}" style="{{ p.stil }}">{{ p.navn }}</button>
+                                        </sc-for>
+                                      </div>
+                                    </sc-if>
+                                  </div>
+                                  <div style="{{ r.deadlineStil }}">{{ r.deadline }}</div>
+                                  <div style="padding:0 12px; display:flex; align-items:center; font-size:12px; color:#6E6E6E; border-left:1px solid #F0F1F4;">{{ r.tidslinje }}</div>
+                                  <div onClick="{{ r.aabn }}" style="padding:0 16px; display:flex; align-items:center; font-size:13px; color:#6E6E6E; border-left:1px solid #F0F1F4; cursor:pointer; overflow:hidden;">
+                                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.noter }}</span>
+                                  </div>
+                                </div>
+
+                                <sc-if value="{{ r.underVis }}" hint-placeholder-val="{{ false }}">
+                                  <div style="background:#FBFBFC; border-bottom:1px solid #F0F1F4;">
+                                    <sc-for list="{{ r.underopgaver }}" as="u" hint-placeholder-count="2">
+                                      <div style="display:grid; grid-template-columns:minmax(300px,1fr) 132px 158px; align-items:center; min-height:38px; border-top:1px solid #F0F1F4;">
+                                        <div style="padding:0 16px 0 52px; display:flex; align-items:center; gap:10px;">
+                                          <button onClick="{{ u.toggle }}" style="{{ u.boksStil }}">{{ u.flueben }}</button>
+                                          <span style="{{ u.navnStil }}">{{ u.navn }}</span>
+                                        </div>
+                                        <div style="padding:0 12px;">
+                                          <div style="{{ u.avatarStil }}">{{ u.ini }}</div>
+                                        </div>
+                                        <div style="padding:0 12px; font-size:12px; color:#9E9E9E;">{{ u.status }}</div>
+                                      </div>
+                                    </sc-for>
+                                  </div>
+                                </sc-if>
+                              </div>
+                            </sc-for>
+
+                            <div style="display:flex; align-items:center; gap:10px; padding:0 16px; height:44px;">
+                              <span style="color:#C4C7CE; font-size:14px;">+</span>
+                              <input value="{{ g.nyVaerdi }}" onChange="{{ g.nyAendring }}" onKeyDown="{{ g.nyTast }}" placeholder="Tilføj opgave" style="flex:1; border:0; background:transparent; font-size:14px; height:32px;">
+                            </div>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ erKanban }}" hint-placeholder-val="{{ false }}">
+                <div class="tb-scroll" style="padding:24px 28px 80px; overflow-x:auto;">
+                  <div style="display:flex; gap:16px; align-items:flex-start; min-width:1100px;">
+                    <sc-for list="{{ kanbanKolonner }}" as="k" hint-placeholder-count="5">
+                      <div onDragOver="{{ k.dragOver }}" onDrop="{{ k.drop }}" style="flex:1; min-width:210px; background:#fff; border:1px solid #E6E8EC;">
+                        <div style="padding:12px 14px; border-bottom:1px solid #F0F1F4; display:flex; align-items:center; gap:9px;">
+                          <span style="{{ k.prikStil }}"></span>
+                          <span style="font-size:13px; font-weight:600;">{{ k.navn }}</span>
+                          <span style="margin-left:auto; font-size:12px; color:#9E9E9E;">{{ k.antal }}</span>
+                        </div>
+                        <div style="padding:10px; display:flex; flex-direction:column; gap:10px; min-height:120px;">
+                          <sc-for list="{{ k.kort }}" as="c" hint-placeholder-count="2">
+                            <div draggable="true" onDragStart="{{ c.dragStart }}" onClick="{{ c.aabn }}" style="{{ c.kortStil }}" style-hover="border-color:#C4C7CE">
+                              <div style="font-size:13px; line-height:1.4; text-wrap:pretty;">{{ c.navn }}</div>
+                              <div style="font-size:11px; color:#9E9E9E; margin-top:6px;">{{ c.gruppe }}</div>
+                              <div style="display:flex; align-items:center; gap:8px; margin-top:12px;">
+                                <sc-for list="{{ c.ansvarlige }}" as="a" hint-placeholder-count="1">
+                                  <div title="{{ a.navn }}" style="{{ a.stil }}">{{ a.ini }}</div>
+                                </sc-for>
+                                <span style="{{ c.deadlineStil }}">{{ c.deadline }}</span>
+                              </div>
+                            </div>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ erGantt }}" hint-placeholder-val="{{ false }}">
+                <div class="tb-scroll" style="padding:24px 28px 80px; overflow-x:auto;">
+                  <div style="background:#fff; border:1px solid #E6E8EC; min-width:1100px;">
+                    <div style="display:grid; grid-template-columns:300px 1fr; border-bottom:1px solid #F0F1F4;">
+                      <div style="padding:12px 16px; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#9E9E9E;">Opgave</div>
+                      <div style="display:flex; border-left:1px solid #F0F1F4;">
+                        <sc-for list="{{ ganttUger }}" as="u" hint-placeholder-count="8">
+                          <div style="flex:1; padding:12px 8px; font-size:11px; color:#9E9E9E; border-right:1px solid #F5F6F8;">{{ u.label }}</div>
+                        </sc-for>
+                      </div>
+                    </div>
+                    <sc-for list="{{ ganttRaekker }}" as="r" hint-placeholder-count="6">
+                      <div onClick="{{ r.aabn }}" style="display:grid; grid-template-columns:300px 1fr; border-bottom:1px solid #F5F6F8; cursor:pointer;" style-hover="background:#FAFBFC">
+                        <div style="padding:11px 16px; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.navn }}</div>
+                        <div style="position:relative; border-left:1px solid #F0F1F4; padding:9px 0;">
+                          <div style="{{ r.barStil }}" title="{{ r.periode }}">{{ r.barTekst }}</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ visPanel }}" hint-placeholder-val="{{ false }}">
+        <div style="position:fixed; inset:0; z-index:60; display:flex; justify-content:flex-end;">
+          <div onClick="{{ lukPanel }}" style="position:absolute; inset:0; background:rgba(24,24,24,.28);"></div>
+          <div class="tb-scroll" style="position:relative; width:520px; height:100vh; background:#fff; border-left:1px solid #E6E8EC; overflow-y:auto;">
+            <div style="padding:24px 28px 18px; border-bottom:1px solid #F0F1F4;">
+              <div style="display:flex; align-items:flex-start; gap:16px;">
+                <div style="flex:1;">
+                  <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E;">{{ panel.sti }}</div>
+                  <div style="font-size:22px; font-weight:600; letter-spacing:-0.01em; margin-top:8px; line-height:1.25; text-wrap:pretty;">{{ panel.navn }}</div>
+                </div>
+                <button onClick="{{ lukPanel }}" style="width:30px; height:30px; border:1px solid #E1E4E9; background:#fff; cursor:pointer; font-size:14px; color:#6E6E6E; flex:none;" style-hover="border-color:#181818">✕</button>
+              </div>
+            </div>
+
+            <div style="padding:22px 28px; display:grid; grid-template-columns:1fr 1fr; gap:20px 16px; border-bottom:1px solid #F0F1F4;">
+              <div>
+                <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:8px;">Status</div>
+                <select value="{{ panel.status }}" onChange="{{ panelSaetStatus }}" style="{{ panel.statusStil }}">
+                  <sc-for list="{{ statusListe }}" as="s" hint-placeholder-count="5">
+                    <option value="{{ s.navn }}">{{ s.navn }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:8px;">Prioritet</div>
+                <select value="{{ panel.prioritet }}" onChange="{{ panelSaetPrio }}" style="{{ panel.prioStil }}">
+                  <sc-for list="{{ prioListe }}" as="p" hint-placeholder-count="4">
+                    <option value="{{ p.navn }}">{{ p.navn }}</option>
+                  </sc-for>
+                </select>
+              </div>
+              <div>
+                <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:8px;">Ansvarlige</div>
+                <div style="display:flex; gap:6px;">
+                  <sc-for list="{{ panel.ansvarlige }}" as="a" hint-placeholder-count="2">
+                    <div title="{{ a.navn }}" style="{{ a.stil }}">{{ a.ini }}</div>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:8px;">Tidslinje</div>
+                <div style="{{ panel.periodeStil }}">{{ panel.periode }}</div>
+              </div>
+            </div>
+
+            <div style="padding:22px 28px; border-bottom:1px solid #F0F1F4;">
+              <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:10px;">Noter</div>
+              <div style="font-size:14px; line-height:1.6; color:#4A4A4A; text-wrap:pretty;">{{ panel.noter }}</div>
+            </div>
+
+            <sc-if value="{{ panel.harUnder }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:22px 28px; border-bottom:1px solid #F0F1F4;">
+                <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:12px;">Underopgaver {{ panel.underTaeller }}</div>
+                <div style="display:flex; flex-direction:column; gap:9px;">
+                  <sc-for list="{{ panel.underopgaver }}" as="u" hint-placeholder-count="3">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <button onClick="{{ u.toggle }}" style="{{ u.boksStil }}">{{ u.flueben }}</button>
+                      <span style="{{ u.navnStil }}">{{ u.navn }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="padding:22px 28px; border-bottom:1px solid #F0F1F4;">
+              <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:12px;">Filer</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <sc-for list="{{ panel.filer }}" as="f" hint-placeholder-count="2">
+                  <div style="display:flex; align-items:center; gap:12px; border:1px solid #E6E8EC; padding:10px 12px;">
+                    <div style="width:30px; height:30px; background:#F0F1F4; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:#6E6E6E;">{{ f.type }}</div>
+                    <div style="min-width:0;">
+                      <div style="font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ f.navn }}</div>
+                      <div style="font-size:11px; color:#9E9E9E;">{{ f.meta }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="padding:22px 28px; border-bottom:1px solid #F0F1F4;">
+              <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:14px;">Kommentarer</div>
+              <div style="display:flex; flex-direction:column; gap:18px;">
+                <sc-for list="{{ panel.kommentarer }}" as="k" hint-placeholder-count="2">
+                  <div style="display:flex; gap:12px;">
+                    <div style="{{ k.avatarStil }}">{{ k.ini }}</div>
+                    <div style="min-width:0;">
+                      <div style="display:flex; gap:8px; align-items:baseline;">
+                        <span style="font-size:13px; font-weight:600;">{{ k.navn }}</span>
+                        <span style="font-size:11px; color:#9E9E9E;">{{ k.tid }}</span>
+                      </div>
+                      <div style="font-size:14px; line-height:1.55; color:#4A4A4A; margin-top:4px; text-wrap:pretty;">{{ k.tekstNode }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="margin-top:20px; border:1px solid #E1E4E9;">
+                <textarea value="{{ kommentarUdkast }}" onChange="{{ saetKommentar }}" placeholder="Skriv en opdatering… brug @ for at nævne en kollega" style="width:100%; border:0; padding:12px; font-size:14px; min-height:74px; resize:vertical; display:block;"></textarea>
+                <div style="display:flex; align-items:center; gap:6px; padding:8px 10px; border-top:1px solid #F0F1F4; background:#FAFBFC;">
+                  <sc-for list="{{ mentionValg }}" as="m" hint-placeholder-count="4">
+                    <button onClick="{{ m.indsaet }}" style="border:1px solid #E1E4E9; background:#fff; font-size:11px; padding:4px 8px; cursor:pointer; color:#3355FF;" style-hover="border-color:#3355FF">{{ m.label }}</button>
+                  </sc-for>
+                  <button onClick="{{ sendKommentar }}" style="margin-left:auto; background:#181818; color:#fff; border:0; font-size:13px; font-weight:500; padding:7px 16px; cursor:pointer;" style-hover="background:#FF442B">Send</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:22px 28px 40px;">
+              <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#9E9E9E; margin-bottom:14px;">Aktivitetslog</div>
+              <div style="display:flex; flex-direction:column;">
+                <sc-for list="{{ panel.log }}" as="l" hint-placeholder-count="3">
+                  <div style="display:flex; gap:12px; padding-bottom:14px;">
+                    <div style="{{ l.prikStil }}"></div>
+                    <div>
+                      <div style="font-size:13px; color:#4A4A4A; line-height:1.5;">{{ l.tekst }}</div>
+                      <div style="font-size:11px; color:#9E9E9E; margin-top:2px;">{{ l.tid }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ visModal }}" hint-placeholder-val="{{ false }}">
+        <div style="position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; background:rgba(24,24,24,.32);">
+          <div style="width:420px; background:#fff; border:1px solid #E6E8EC; padding:28px;">
+            <div style="font-size:20px; font-weight:600; letter-spacing:-0.01em;">{{ modalTitel }}</div>
+            <div style="font-size:13px; color:#6E6E6E; margin-top:6px;">{{ modalHjaelp }}</div>
+            <input value="{{ modalVaerdi }}" onChange="{{ saetModalVaerdi }}" placeholder="{{ modalPlaceholder }}" style="width:100%; height:44px; border:1px solid #DDE0E5; padding:0 14px; font-size:15px; margin-top:20px;">
+            <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:22px;">
+              <button onClick="{{ lukModal }}" style="height:40px; padding:0 16px; border:1px solid #E1E4E9; background:#fff; font-size:14px; cursor:pointer;">Annullér</button>
+              <button onClick="{{ gemModal }}" style="height:40px; padding:0 20px; border:0; background:#FF442B; color:#fff; font-size:14px; font-weight:600; cursor:pointer;">Opret</button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;springLoginOver&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;standardBruger&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Mette Kragh&quot;,&quot;Jonas Bech&quot;,&quot;Sofie Lind&quot;,&quot;Anders Hovmand&quot;],&quot;default&quot;:&quot;Mette Kragh&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Demo&quot;},&quot;startVisning&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tabel&quot;,&quot;kanban&quot;,&quot;gantt&quot;],&quot;default&quot;:&quot;tabel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Boards&quot;}}">
+const STATUS = [
+  { navn: 'Ikke startet', f: '#C4C7CE', t: '#181818' },
+  { navn: 'I gang', f: '#3355FF', t: '#FFFFFF' },
+  { navn: 'Afventer kunde', f: '#FFB020', t: '#181818' },
+  { navn: 'Klar til review', f: '#7B61FF', t: '#FFFFFF' },
+  { navn: 'Færdig', f: '#16A34A', t: '#FFFFFF' }
+];
+const PRIO = [
+  { navn: 'Kritisk', f: '#FF442B' },
+  { navn: 'Høj', f: '#FF8A65' },
+  { navn: 'Medium', f: '#3355FF' },
+  { navn: 'Lav', f: '#9E9E9E' }
+];
+const BRUGERE = [
+  { id: 'u1', navn: 'Mette Kragh', rolle: 'Head of Growth', ini: 'MK', f: '#FF442B', email: 'mette@thirdbase.dk' },
+  { id: 'u2', navn: 'Jonas Bech', rolle: 'Performance Marketing Manager', ini: 'JB', f: '#3355FF', email: 'jonas@thirdbase.dk' },
+  { id: 'u3', navn: 'Sofie Lind', rolle: 'Content Strategist', ini: 'SL', f: '#181818', email: 'sofie@thirdbase.dk' },
+  { id: 'u4', navn: 'Anders Hovmand', rolle: 'CRM Konsulent', ini: 'AH', f: '#FF8A65', email: 'anders@thirdbase.dk' }
+];
+function AV(b, px, extra) { return 'width:' + px + 'px; height:' + px + 'px; display:flex; align-items:center; justify-content:center; font-weight:600; color:#fff; flex:none; font-size:' + Math.round(px * 0.38) + 'px; background:' + b.f + ';' + (extra || ''); }
+function PRIK(f, px, extra) { return 'width:' + px + 'px; height:' + px + 'px; flex:none; background:' + f + ';' + (extra || ''); }
+function KPI(label, vaerdi, farve) { return { label: label, vaerdi: vaerdi, vaerdiStil: 'font-size:40px; font-weight:600; letter-spacing:-0.02em; margin-top:10px; color:' + farve + ';' }; }
+const IDAG = '2026-08-03';
+const MDR = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'];
+
+function T(navn, a, s, p, start, slut, noter, subs) {
+  return { navn: navn, a: a, s: s, p: p, start: start, slut: slut, noter: noter, subs: subs || [] };
+}
+
+const KUNDER = [
+  {
+    navn: 'Nordvest Bilcenter A/S', kort: 'NB', branche: 'Bilforhandler · Aalborg',
+    boards: [
+      { navn: 'Leadgenerering', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Opsæt leadscoring-model for prøvekørsler', ['u1', 'u4'], 1, 0, '2026-07-27', '2026-08-07', 'Data trækkes ugentligt fra deres DMS. Afventer feltmapping fra Christian.', ['Definér scoringskriterier', 'Mapping af felter fra DMS', 'Validering med salgschef']),
+          T('Ny landingsside til varevogne', ['u2'], 2, 1, '2026-07-30', '2026-08-05', 'Kunden skal godkende billedmateriale før publicering.', ['Wireframe', 'Tekst til hero', 'Opsæt formular']),
+          T('Gennemgå juli-leads med sælgerteamet', ['u1'], 3, 2, '2026-08-03', '2026-08-03', 'Møde kl. 13 hos kunden i Aalborg.', []),
+          T('Justér budgivning på Google Ads brugtbil', ['u2'], 1, 1, '2026-08-03', '2026-08-06', 'CPA er steget 18% siden uge 29.', [])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Formular-tracking på testkørsel', ['u2'], 0, 2, '2026-08-10', '2026-08-14', 'Kræver adgang til GTM-container.', []),
+          T('Integration mellem CRM og Bilinfo', ['u4'], 0, 1, '2026-08-17', '2026-08-28', 'Estimat 6.000 DKK i udvikling.', ['Teknisk afklaring', 'Test i sandbox']),
+          T('Leadmagnet: guide til erhvervsleasing', ['u3'], 0, 3, '2026-08-24', '2026-09-04', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Kortlægning af leadflow', ['u1', 'u4'], 4, 2, '2026-07-06', '2026-07-17', 'Leveret som workshop-materiale.', []),
+          T('Opsætning af conversion tracking', ['u2'], 4, 1, '2026-07-13', '2026-07-24', '', [])
+        ] }
+      ] },
+      { navn: 'Content og LinkedIn', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Redigér 3 videoklip fra værkstedet', ['u3'], 1, 1, '2026-07-31', '2026-08-04', 'Råklip ligger i delt drev.', ['Klip', 'Undertekster på dansk']),
+          T('Kalender for august godkendes af kunden', ['u3', 'u1'], 2, 2, '2026-07-29', '2026-08-03', 'Sendt til Louise mandag.', []),
+          T('LinkedIn-opslag: elbil-serviceaftale', ['u3'], 0, 2, '2026-08-04', '2026-08-07', '', [])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Medarbejderportrætter til Q4', ['u3'], 0, 3, '2026-09-01', '2026-09-18', 'Fotograf skal bookes.', []),
+          T('Opdatér tone of voice-guide', ['u3'], 0, 3, '2026-08-20', '2026-08-27', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Content-audit af eksisterende opslag', ['u3'], 4, 2, '2026-07-01', '2026-07-10', '', [])
+        ] }
+      ] },
+      { navn: 'Kampagner', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Kampagne: Sensommer-salg på brugte SUV', ['u2', 'u1'], 1, 0, '2026-07-28', '2026-08-11', 'Budget 42.000 DKK fordelt på Meta og Google.', ['Annoncetekster', 'Billedformater 1:1 og 9:16', 'Opsæt målgrupper']),
+          T('Rapport for juli sendes til kunden', ['u1'], 3, 1, '2026-08-01', '2026-08-03', 'Skal indeholde CPL pr. kanal.', [])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Test af nye annonceformater på Meta', ['u2'], 0, 2, '2026-08-12', '2026-08-21', '', []),
+          T('Retargeting på besøgende i bilkonfigurator', ['u2'], 0, 1, '2026-08-18', '2026-08-31', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Forårskampagne · afrapportering', ['u2', 'u1'], 4, 2, '2026-06-15', '2026-07-03', '', [])
+        ] }
+      ] }
+    ]
+  },
+  {
+    navn: 'Bregnholt Industri A/S', kort: 'BI', branche: 'Produktion · Vejle',
+    boards: [
+      { navn: 'Leadgenerering', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Segmentering af emnelister til underleverandører', ['u4', 'u1'], 1, 1, '2026-07-29', '2026-08-06', 'Datagrundlag fra Bisnode.', ['Rens dubletter', 'Berig med branchekoder']),
+          T('Opsæt scoring på webinar-tilmeldinger', ['u4'], 2, 2, '2026-07-27', '2026-08-04', 'Afventer svar fra deres IT.', []),
+          T('Outbound-sekvens til indkøbschefer', ['u3'], 1, 1, '2026-08-03', '2026-08-10', '5 mails over 3 uger.', ['Mail 1-2', 'Mail 3-5'])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Case-interview med produktionschef', ['u3'], 0, 2, '2026-08-19', '2026-08-26', '', []),
+          T('Leadscoring version 2 med vægtning på omsætning', ['u4'], 0, 3, '2026-09-02', '2026-09-16', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Workshop om ICP og købsrejse', ['u1'], 4, 1, '2026-06-22', '2026-07-02', '', [])
+        ] }
+      ] },
+      { navn: 'Onboarding', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Adgange til Google Ads og Meta Business', ['u2'], 2, 0, '2026-07-24', '2026-07-31', 'Rykket to gange. Kontakt Henrik direkte.', []),
+          T('Kickoff-møde med marketing og salg', ['u1', 'u3'], 4, 1, '2026-07-20', '2026-07-28', '', []),
+          T('Opsæt delt rapporteringsdashboard', ['u4'], 1, 2, '2026-08-03', '2026-08-07', '', ['Datakilder', 'Skabelon'])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Aftale om månedlig statusrytme', ['u1'], 0, 3, '2026-08-14', '2026-08-18', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Kontrakt og databehandleraftale', ['u1'], 4, 0, '2026-07-06', '2026-07-13', '', [])
+        ] }
+      ] }
+    ]
+  },
+  {
+    navn: 'Sylvest Logistik A/S', kort: 'SY', branche: 'Logistik · Taastrup',
+    boards: [
+      { navn: 'Kampagner', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('LinkedIn-kampagne mod e-commerce-kunder', ['u2', 'u3'], 1, 0, '2026-07-30', '2026-08-12', 'Målgruppe: logistikansvarlige i webshops over 50 mio. DKK.', ['Annoncetekster', 'Målgruppeopsætning', 'Landingsside']),
+          T('Opdatér budget efter Q3-justering', ['u1'], 3, 1, '2026-08-02', '2026-08-04', 'Ny ramme på 78.000 DKK pr. kvartal.', []),
+          T('A/B-test af annoncebilleder', ['u2'], 0, 2, '2026-08-05', '2026-08-13', '', [])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Kampagne til returlogistik i Q4', ['u2'], 0, 2, '2026-09-07', '2026-09-30', '', []),
+          T('Undersøg annoncering i brancheportaler', ['u1'], 0, 3, '2026-08-24', '2026-09-04', '', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Sommerkampagne · afrapportering', ['u2'], 4, 2, '2026-06-08', '2026-06-30', '', [])
+        ] }
+      ] },
+      { navn: 'Content og LinkedIn', grupper: [
+        { navn: 'Denne uge', farve: '#FF442B', opgaver: [
+          T('Artikel: Sådan reducerer du fejlleveringer', ['u3'], 2, 1, '2026-07-27', '2026-08-05', 'Fagligt review hos deres driftschef.', []),
+          T('Ugentlige opslag uge 32-34', ['u3'], 1, 2, '2026-08-03', '2026-08-21', '', ['Uge 32', 'Uge 33', 'Uge 34'])
+        ] },
+        { navn: 'Backlog', farve: '#9E9E9E', opgaver: [
+          T('Videoserie fra terminalen i Taastrup', ['u3', 'u2'], 0, 2, '2026-09-01', '2026-09-25', 'Kræver sikkerhedsgodkendelse.', [])
+        ] },
+        { navn: 'Afsluttet', farve: '#16A34A', opgaver: [
+          T('Profiloptimering af ledelsen på LinkedIn', ['u3'], 4, 3, '2026-06-29', '2026-07-09', '', [])
+        ] }
+      ] }
+    ]
+  }
+];
+
+const KOMMENTARER = [
+  [{ u: 'u1', tid: 'i går kl. 14.22', tekst: '@Anders Hovmand kan du tjekke om felterne matcher det vi aftalte på kickoff? Vi skal kunne vise det fredag.' }, { u: 'u4', tid: 'i dag kl. 08.41', tekst: 'Ja. Mangler stadig svar på to felter fra deres IT, resten er mappet.' }],
+  [{ u: 'u2', tid: 'mandag kl. 11.05', tekst: 'Første udkast ligger klar. @Sofie Lind vil du kigge teksten igennem inden vi sender til kunden?' }],
+  [{ u: 'u3', tid: 'i dag kl. 09.12', tekst: 'Kunden har bedt om en ekstra runde. Jeg rykker deadline til på fredag.' }]
+];
+const FILER = [
+  [{ navn: 'leadscoring-model-v3.xlsx', type: 'XLSX', meta: 'Anders Hovmand · 1,4 MB' }, { navn: 'feltmapping-dms.pdf', type: 'PDF', meta: 'Mette Kragh · 320 KB' }],
+  [{ navn: 'annoncetekster-august.docx', type: 'DOCX', meta: 'Sofie Lind · 88 KB' }],
+  [{ navn: 'rapport-juli.pdf', type: 'PDF', meta: 'Mette Kragh · 2,1 MB' }]
+];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    let tid = 0;
+    this.db = {
+      brugere: BRUGERE,
+      kunder: KUNDER.map(function (k, ki) {
+        return {
+          id: 'k' + ki, navn: k.navn, kort: k.kort, branche: k.branche,
+          boards: k.boards.map(function (b, bi) {
+            return {
+              id: 'k' + ki + 'b' + bi, navn: b.navn,
+              grupper: b.grupper.map(function (g, gi) {
+                return {
+                  id: 'k' + ki + 'b' + bi + 'g' + gi, navn: g.navn, farve: g.farve, foldet: false,
+                  opgaver: g.opgaver.map(function (o) {
+                    tid++;
+                    return {
+                      id: 't' + tid, navn: o.navn, ansvarlige: o.a.slice(),
+                      status: STATUS[o.s].navn, prioritet: PRIO[o.p].navn,
+                      start: o.start, slut: o.slut, noter: o.noter,
+                      underopgaver: o.subs.map(function (s, si) { return { navn: s, faerdig: si === 0 && o.s > 1 }; }),
+                      kommentarer: (KOMMENTARER[tid % 3] || []).slice(0, tid % 4 === 0 ? 1 : 2).map(function (c) { return { u: c.u, tid: c.tid, tekst: c.tekst }; }),
+                      filer: tid % 3 === 0 ? FILER[tid % 3].slice() : (tid % 4 === 0 ? FILER[1].slice() : []),
+                      log: [
+                        { tekst: 'Opgave oprettet af Mette Kragh', tid: '14. jul. kl. 10.02', farve: '#C4C7CE' },
+                        { tekst: 'Status ændret til ' + STATUS[o.s].navn, tid: '29. jul. kl. 15.48', farve: STATUS[o.s].f },
+                        { tekst: 'Deadline sat til ' + o.slut, tid: '30. jul. kl. 09.11', farve: '#3355FF' }
+                      ]
+                    };
+                  })
+                };
+              })
+            };
+          })
+        };
+      })
+    };
+    const startBruger = (BRUGERE.filter(function (b) { return b.navn === props.standardBruger; })[0] || BRUGERE[0]);
+    this.state = {
+      loggetInd: props.springLoginOver === true, brugerId: startBruger.id, loginEmail: 'mette@thirdbase.dk', loginKode: 'thirdbase', loginFejl: false,
+      nav: { type: 'mit' }, visning: props.startVisning || 'tabel', aabneKunder: { k0: true },
+      panelId: null, statusMenu: null, prioMenu: null, visNoti: false, soeg: '',
+      filter: { person: '', status: '', prio: '' }, nyOpgave: {}, kommentarUdkast: '',
+      modal: null, modalVaerdi: '', udfoldet: {}
+    };
+  }
+
+  bruger(id) { return this.db.brugere.filter(function (b) { return b.id === id; })[0] || BRUGERE[0]; }
+  status(n) { return STATUS.filter(function (s) { return s.navn === n; })[0] || STATUS[0]; }
+  prio(n) { return PRIO.filter(function (p) { return p.navn === n; })[0] || PRIO[0]; }
+  kunde(id) { return this.db.kunder.filter(function (k) { return k.id === id; })[0]; }
+  board(kid, bid) { const k = this.kunde(kid); return k ? k.boards.filter(function (b) { return b.id === bid; })[0] : null; }
+
+  alleOpgaver() {
+    const ud = [];
+    this.db.kunder.forEach(function (k) {
+      k.boards.forEach(function (b) {
+        b.grupper.forEach(function (g) {
+          g.opgaver.forEach(function (o) { ud.push({ o: o, g: g, b: b, k: k }); });
+        });
+      });
+    });
+    return ud;
+  }
+  findOpgave(id) { return this.alleOpgaver().filter(function (x) { return x.o.id === id; })[0]; }
+
+  dtoTekst(d) { if (!d) return '—'; const p = d.split('-'); return parseInt(p[2], 10) + '. ' + MDR[parseInt(p[1], 10) - 1]; }
+  dage(d) { return Math.round((new Date(d) - new Date(IDAG)) / 86400000); }
+  deadlineFarve(o) {
+    if (o.status === 'Færdig') return '#9E9E9E';
+    const d = this.dage(o.slut);
+    if (d < 0) return '#FF442B';
+    if (d <= 1) return '#FF8A65';
+    return '#4A4A4A';
+  }
+
+  passerFilter(o) {
+    const f = this.state.filter;
+    if (f.person && o.ansvarlige.indexOf(f.person) < 0) return false;
+    if (f.status && o.status !== f.status) return false;
+    if (f.prio && o.prioritet !== f.prio) return false;
+    return true;
+  }
+
+  s(patch) { this.setState(patch); }
+  opdater() { this.forceUpdate(); }
+
+  saetStatus(id, navn) {
+    const x = this.findOpgave(id);
+    if (x) { x.o.status = navn; x.o.log.unshift({ tekst: this.bruger(this.state.brugerId).navn + ' ændrede status til ' + navn, tid: 'lige nu', farve: this.status(navn).f }); }
+    this.setState({ statusMenu: null });
+  }
+  saetPrio(id, navn) {
+    const x = this.findOpgave(id);
+    if (x) { x.o.prioritet = navn; x.o.log.unshift({ tekst: this.bruger(this.state.brugerId).navn + ' satte prioritet til ' + navn, tid: 'lige nu', farve: this.prio(navn).f }); }
+    this.setState({ prioMenu: null });
+  }
+
+  flytOpgave(taskId, gruppeId, foerId) {
+    const x = this.findOpgave(taskId);
+    if (!x) return;
+    let maal = null;
+    this.db.kunder.forEach(function (k) { k.boards.forEach(function (b) { b.grupper.forEach(function (g) { if (g.id === gruppeId) maal = g; }); }); });
+    if (!maal) return;
+    const i = x.g.opgaver.indexOf(x.o);
+    x.g.opgaver.splice(i, 1);
+    let idx = maal.opgaver.length;
+    if (foerId) { const j = maal.opgaver.map(function (o) { return o.id; }).indexOf(foerId); if (j >= 0) idx = j; }
+    maal.opgaver.splice(idx, 0, x.o);
+    this.forceUpdate();
+  }
+
+  tilfoejOpgave(gruppeId) {
+    const navn = (this.state.nyOpgave[gruppeId] || '').trim();
+    if (!navn) return;
+    let maal = null;
+    this.db.kunder.forEach(function (k) { k.boards.forEach(function (b) { b.grupper.forEach(function (g) { if (g.id === gruppeId) maal = g; }); }); });
+    if (!maal) return;
+    const start = IDAG;
+    const slut = new Date(new Date(IDAG).getTime() + 7 * 86400000).toISOString().slice(0, 10);
+    maal.opgaver.push({
+      id: 't' + Math.random().toString(36).slice(2, 8), navn: navn, ansvarlige: [this.state.brugerId],
+      status: 'Ikke startet', prioritet: 'Medium', start: start, slut: slut, noter: '',
+      underopgaver: [], kommentarer: [], filer: [],
+      log: [{ tekst: 'Opgave oprettet af ' + this.bruger(this.state.brugerId).navn, tid: 'lige nu', farve: '#C4C7CE' }]
+    });
+    const ny = Object.assign({}, this.state.nyOpgave); ny[gruppeId] = '';
+    this.setState({ nyOpgave: ny });
+  }
+
+  renderVals() {
+    const self = this;
+    const st = this.state;
+    const mig = this.bruger(st.brugerId);
+
+    const base = {
+      brugere: this.db.brugere.map(function (b) {
+        return Object.assign({}, b, { avatarStil: AV(b, 32), vaelg: function () { self.setState({ loggetInd: true, brugerId: b.id, nav: { type: 'mit' } }); } });
+      }),
+      statusListe: STATUS, prioListe: PRIO,
+      visLogin: !st.loggetInd, visApp: st.loggetInd,
+      loginEmail: st.loginEmail, loginKode: st.loginKode, loginFejl: st.loginFejl,
+      saetEmail: function (e) { self.setState({ loginEmail: e.target.value, loginFejl: false }); },
+      saetKode: function (e) { self.setState({ loginKode: e.target.value, loginFejl: false }); },
+      logInd: function () {
+        const b = BRUGERE.filter(function (x) { return x.email.toLowerCase() === st.loginEmail.trim().toLowerCase(); })[0];
+        if (b && st.loginKode.length > 2) self.setState({ loggetInd: true, brugerId: b.id, nav: { type: 'mit' } });
+        else self.setState({ loginFejl: true });
+      },
+      logUd: function () { self.setState({ loggetInd: false, panelId: null }); },
+      mig: Object.assign({}, mig, { fornavn: mig.navn.split(' ')[0], avatarStil: AV(mig, 30) })
+    };
+    if (!st.loggetInd) return base;
+
+    const nav = st.nav;
+
+    base.gaaMitArbejde = function () { self.setState({ nav: { type: 'mit' }, panelId: null }); };
+    base.gaaOverblik = function () { self.setState({ nav: { type: 'overblik' }, panelId: null }); };
+    const navStil = function (aktiv) {
+      return 'text-align:left; padding:9px 12px; font-size:14px; border:0; cursor:pointer; background:' + (aktiv ? '#2A2A2A' : 'transparent') + '; color:' + (aktiv ? '#FFFFFF' : '#C9CBD0') + '; border-left:2px solid ' + (aktiv ? '#FF442B' : 'transparent') + ';';
+    };
+    base.stilMitArbejde = navStil(nav.type === 'mit');
+    base.stilOverblik = navStil(nav.type === 'overblik');
+
+    base.sidebarKunder = this.db.kunder.map(function (k) {
+      const aaben = !!st.aabneKunder[k.id];
+      return {
+        navn: k.navn, kort: k.kort, aaben: aaben, pil: aaben ? '▾' : '▸',
+        stil: 'display:flex; align-items:center; gap:9px; width:100%; padding:8px 10px; font-size:13px; border:0; cursor:pointer; background:' + (nav.kundeId === k.id ? '#232323' : 'transparent') + '; color:#E6E7EA;',
+        toggle: function () { const a = Object.assign({}, st.aabneKunder); a[k.id] = !aaben; self.setState({ aabneKunder: a }); },
+        gaaDashboard: function () { self.setState({ nav: { type: 'dashboard', kundeId: k.id }, panelId: null }); },
+        stilDashboard: 'text-align:left; background:transparent; border:0; font-size:12.5px; padding:6px 8px; cursor:pointer; color:' + (nav.type === 'dashboard' && nav.kundeId === k.id ? '#FF442B' : '#9E9E9E') + ';',
+        nytBoard: function () { self.setState({ modal: { type: 'board', kundeId: k.id }, modalVaerdi: '' }); },
+        boards: k.boards.map(function (b) {
+          const aktiv = nav.type === 'board' && nav.boardId === b.id;
+          return {
+            navn: b.navn,
+            stil: 'text-align:left; background:transparent; border:0; font-size:12.5px; padding:6px 8px; cursor:pointer; color:' + (aktiv ? '#FFFFFF' : '#9E9E9E') + '; font-weight:' + (aktiv ? '600' : '400') + ';',
+            gaa: function () { self.setState({ nav: { type: 'board', kundeId: k.id, boardId: b.id }, panelId: null, visning: 'tabel' }); }
+          };
+        })
+      };
+    });
+
+    const aktivKunde = nav.kundeId ? this.kunde(nav.kundeId) : null;
+    const aktivBoard = nav.type === 'board' ? this.board(nav.kundeId, nav.boardId) : null;
+    base.topEyebrow = nav.type === 'mit' ? 'Personlig oversigt' : (nav.type === 'overblik' ? 'thirdbase' : (aktivKunde ? aktivKunde.branche : ''));
+    base.topTitel = nav.type === 'mit' ? 'Mit arbejde' : (nav.type === 'overblik' ? 'Alle kunder' : (nav.type === 'dashboard' ? aktivKunde.navn + ' · Dashboard' : (aktivKunde ? aktivKunde.navn + ' · ' + aktivBoard.navn : '')));
+
+    base.soeg = st.soeg;
+    base.saetSoeg = function (e) { self.setState({ soeg: e.target.value }); };
+    const q = st.soeg.trim().toLowerCase();
+    base.visSoegeResultat = q.length > 1;
+    const traef = q.length > 1 ? this.alleOpgaver().filter(function (x) {
+      return x.o.navn.toLowerCase().indexOf(q) >= 0 || x.k.navn.toLowerCase().indexOf(q) >= 0 || x.b.navn.toLowerCase().indexOf(q) >= 0;
+    }).slice(0, 8) : [];
+    base.soegeResultater = traef.map(function (x) {
+      return {
+        navn: x.o.navn, sti: x.k.navn + ' · ' + x.b.navn + ' · ' + x.g.navn,
+        gaa: function () { self.setState({ nav: { type: 'board', kundeId: x.k.id, boardId: x.b.id }, panelId: x.o.id, soeg: '' }); }
+      };
+    });
+    base.ingenSoegeResultater = q.length > 1 && traef.length === 0;
+
+    base.visNoti = st.visNoti;
+    base.toggleNoti = function () { self.setState({ visNoti: !st.visNoti }); };
+    base.notiAntal = 4;
+    base.notifikationer = [
+      { tekst: 'Sofie Lind nævnte dig i "Kalender for august godkendes af kunden"', tid: 'for 12 minutter siden', prikStil: PRIK('#FF442B', 8, ' margin-top:6px;') },
+      { tekst: 'Du blev tildelt "Outbound-sekvens til indkøbschefer" hos Bregnholt Industri', tid: 'for 1 time siden', prikStil: PRIK('#3355FF', 8, ' margin-top:6px;') },
+      { tekst: 'Jonas Bech ændrede status til Klar til review på "Rapport for juli sendes til kunden"', tid: 'i dag kl. 08.30', prikStil: PRIK('#7B61FF', 8, ' margin-top:6px;') },
+      { tekst: 'Deadline overskredet: "Adgange til Google Ads og Meta Business"', tid: 'i går kl. 23.59', prikStil: PRIK('#FF442B', 8, ' margin-top:6px;') }
+    ];
+
+    base.erMitArbejde = nav.type === 'mit';
+    base.erOverblik = nav.type === 'overblik';
+    base.erDashboard = nav.type === 'dashboard';
+    base.erBoard = nav.type === 'board';
+
+    if (nav.type === 'mit') {
+      const mine = this.alleOpgaver().filter(function (x) { return x.o.ansvarlige.indexOf(st.brugerId) >= 0 && x.o.status !== 'Færdig'; });
+      const bucket = { forsinket: [], idag: [], uge: [], senere: [] };
+      mine.forEach(function (x) {
+        const d = self.dage(x.o.slut);
+        if (d < 0) bucket.forsinket.push(x); else if (d === 0) bucket.idag.push(x); else if (d <= 6) bucket.uge.push(x); else bucket.senere.push(x);
+      });
+      const rad = function (x) {
+        const s = self.status(x.o.status), p = self.prio(x.o.prioritet);
+        return {
+          navn: x.o.navn, sti: x.k.navn + ' · ' + x.b.navn, status: x.o.status,
+          chipStil: 'font-size:12px; font-weight:600; padding:5px 10px; text-align:center; justify-self:start; background:' + s.f + '; color:' + s.t + ';',
+          prioritet: x.o.prioritet, prikStil: PRIK(p.f, 8), deadline: self.dtoTekst(x.o.slut),
+          deadlineStil: 'font-size:13px; text-align:right; color:' + self.deadlineFarve(x.o) + ';',
+          aabn: function () { self.setState({ nav: { type: 'board', kundeId: x.k.id, boardId: x.b.id }, panelId: x.o.id }); }
+        };
+      };
+      const grp = function (navn, farve, liste) {
+        return { navn: navn, prikStil: PRIK(farve, 9), antal: liste.length, tom: liste.length === 0, opgaver: liste.map(rad) };
+      };
+      base.mineGrupper = [
+        grp('Forsinket', '#FF442B', bucket.forsinket),
+        grp('I dag', '#FF8A65', bucket.idag),
+        grp('Denne uge', '#3355FF', bucket.uge),
+        grp('Senere', '#9E9E9E', bucket.senere)
+      ];
+      base.mineAntal = mine.length;
+      const ks = {}; mine.forEach(function (x) { ks[x.k.id] = 1; });
+      base.mineKunder = Object.keys(ks).length;
+    }
+
+    if (nav.type === 'overblik') {
+      const alle = this.alleOpgaver();
+      const aabne = alle.filter(function (x) { return x.o.status !== 'Færdig'; });
+      base.globalKpi = [
+        KPI('Åbne opgaver', aabne.length, '#181818'),
+        KPI('Forsinkede', aabne.filter(function (x) { return self.dage(x.o.slut) < 0; }).length, '#FF442B'),
+        KPI('Aktive kunder', this.db.kunder.length, '#181818'),
+        KPI('Boards i drift', this.db.kunder.reduce(function (a, k) { return a + k.boards.length; }, 0), '#3355FF')
+      ];
+      base.belastning = this.db.brugere.map(function (b) {
+        const mine = aabne.filter(function (x) { return x.o.ansvarlige.indexOf(b.id) >= 0; });
+        const maks = 12;
+        return Object.assign({}, b, {
+          avatarStil: AV(b, 26),
+          tekst: mine.length + ' åbne opgaver',
+          segmenter: STATUS.filter(function (s) { return s.navn !== 'Færdig'; }).map(function (s) {
+            const n = mine.filter(function (x) { return x.o.status === s.navn; }).length;
+            return { stil: 'width:' + (n / maks * 100) + '%; background:' + s.f + ';', titel: s.navn + ': ' + n };
+          })
+        });
+      });
+      const maksK = Math.max.apply(null, this.db.kunder.map(function (k) {
+        return aabne.filter(function (x) { return x.k.id === k.id; }).length;
+      }));
+      base.kundeBelastning = this.db.kunder.map(function (k) {
+        const n = aabne.filter(function (x) { return x.k.id === k.id; }).length;
+        return {
+          navn: k.navn, antal: n + ' åbne',
+          barStil: 'height:8px; width:' + (n / maksK * 100) + '%; background:#FF442B;',
+          gaa: function () { self.setState({ nav: { type: 'dashboard', kundeId: k.id } }); }
+        };
+      });
+    }
+
+    if (nav.type === 'dashboard' && aktivKunde) {
+      const alle = this.alleOpgaver().filter(function (x) { return x.k.id === aktivKunde.id; });
+      const aabne = alle.filter(function (x) { return x.o.status !== 'Færdig'; });
+      base.kundeKpi = [
+        KPI('Åbne opgaver', aabne.length, '#181818'),
+        KPI('Forsinkede', aabne.filter(function (x) { return self.dage(x.o.slut) < 0; }).length, '#FF442B'),
+        KPI('Færdige i alt', alle.length - aabne.length, '#16A34A'),
+        KPI('Boards', aktivKunde.boards.length, '#3355FF')
+      ];
+      let akk = 0;
+      const stops = [];
+      const fordeling = STATUS.map(function (s) {
+        const n = alle.filter(function (x) { return x.o.status === s.navn; }).length;
+        return { navn: s.navn, farve: s.f, prikStil: PRIK(s.f, 9), antal: n };
+      });
+      fordeling.forEach(function (s) {
+        const p = s.antal / Math.max(alle.length, 1) * 100;
+        stops.push(s.farve + ' ' + akk + '% ' + (akk + p) + '%');
+        akk += p;
+      });
+      base.statusFordeling = fordeling;
+      base.donutStil = 'width:132px; height:132px; border-radius:50%; flex:none; position:relative; background:conic-gradient(' + stops.join(', ') + ');';
+      base.donutTotal = alle.length;
+      const maksP = Math.max.apply(null, this.db.brugere.map(function (b) {
+        return aabne.filter(function (x) { return x.o.ansvarlige.indexOf(b.id) >= 0; }).length;
+      }).concat([1]));
+      base.personSoejler = this.db.brugere.map(function (b) {
+        const n = aabne.filter(function (x) { return x.o.ansvarlige.indexOf(b.id) >= 0; }).length;
+        return { ini: b.ini, antal: n, stil: 'width:100%; height:' + Math.max(n / maksP * 110, 3) + 'px; background:' + b.f + ';' };
+      });
+      base.kommendeDeadlines = aabne.slice().sort(function (a, b) { return a.o.slut < b.o.slut ? -1 : 1; }).slice(0, 6).map(function (x) {
+        return {
+          dato: self.dtoTekst(x.o.slut), navn: x.o.navn, board: x.b.navn,
+          datoStil: 'width:52px; flex:none; font-size:12px; font-weight:600; color:' + self.deadlineFarve(x.o) + ';',
+          aabn: function () { self.setState({ nav: { type: 'board', kundeId: x.k.id, boardId: x.b.id }, panelId: x.o.id }); }
+        };
+      });
+    }
+
+    if (nav.type === 'board' && aktivBoard) {
+      base.visninger = [
+        { navn: 'Tabel', key: 'tabel' }, { navn: 'Kanban', key: 'kanban' }, { navn: 'Tidslinje', key: 'gantt' }
+      ].map(function (v) {
+        const aktiv = st.visning === v.key;
+        return {
+          navn: v.navn,
+          stil: 'background:transparent; border:0; border-bottom:2px solid ' + (aktiv ? '#FF442B' : 'transparent') + '; padding:18px 14px; font-size:14px; font-weight:' + (aktiv ? '600' : '400') + '; color:' + (aktiv ? '#181818' : '#6E6E6E') + '; cursor:pointer;',
+          vaelg: function () { self.setState({ visning: v.key }); }
+        };
+      });
+      base.erTabel = st.visning === 'tabel';
+      base.erKanban = st.visning === 'kanban';
+      base.erGantt = st.visning === 'gantt';
+      base.filterPerson = st.filter.person; base.filterStatus = st.filter.status; base.filterPrio = st.filter.prio;
+      base.saetFilterPerson = function (e) { self.setState({ filter: Object.assign({}, st.filter, { person: e.target.value }) }); };
+      base.saetFilterStatus = function (e) { self.setState({ filter: Object.assign({}, st.filter, { status: e.target.value }) }); };
+      base.saetFilterPrio = function (e) { self.setState({ filter: Object.assign({}, st.filter, { prio: e.target.value }) }); };
+      base.harFilter = !!(st.filter.person || st.filter.status || st.filter.prio);
+      base.ryddFilter = function () { self.setState({ filter: { person: '', status: '', prio: '' } }); };
+
+      const raekke = function (o, g) {
+        const s = self.status(o.status), p = self.prio(o.prioritet);
+        const udf = !!st.udfoldet[o.id];
+        return {
+          navn: o.navn, status: o.status, prioritet: o.prioritet,
+          statusStil: 'width:100%; height:100%; min-height:44px; border:0; cursor:pointer; font-size:12.5px; font-weight:600; background:' + s.f + '; color:' + s.t + ';',
+          prioStil: 'width:100%; height:100%; min-height:44px; border:0; cursor:pointer; font-size:12.5px; text-align:left; padding:0 12px; background:transparent; color:' + p.f + '; font-weight:500;',
+          statusAaben: st.statusMenu === o.id, prioAaben: st.prioMenu === o.id,
+          toggleStatus: function () { self.setState({ statusMenu: st.statusMenu === o.id ? null : o.id, prioMenu: null }); },
+          togglePrio: function () { self.setState({ prioMenu: st.prioMenu === o.id ? null : o.id, statusMenu: null }); },
+          statusValg: STATUS.map(function (x) {
+            return { navn: x.navn, stil: 'display:block; width:100%; text-align:left; padding:9px 12px; font-size:12.5px; font-weight:600; border:0; cursor:pointer; background:' + x.f + '; color:' + x.t + ';', vaelg: function () { self.saetStatus(o.id, x.navn); } };
+          }),
+          prioValg: PRIO.map(function (x) {
+            return { navn: x.navn, stil: 'display:block; width:100%; text-align:left; padding:9px 12px; font-size:12.5px; border:0; border-bottom:1px solid #F0F1F4; cursor:pointer; background:#fff; color:' + x.f + ';', vaelg: function () { self.saetPrio(o.id, x.navn); } };
+          }),
+          ansvarlige: o.ansvarlige.map(function (id) { const b = self.bruger(id); return { navn: b.navn, ini: b.ini, stil: AV(b, 26, ' margin-right:-6px; border:2px solid #fff;') }; }),
+          deadline: self.dtoTekst(o.slut),
+          deadlineStil: 'padding:0 12px; display:flex; align-items:center; font-size:13px; border-left:1px solid #F0F1F4; color:' + self.deadlineFarve(o) + ';',
+          tidslinje: self.dtoTekst(o.start) + ' – ' + self.dtoTekst(o.slut),
+          noter: o.noter || '—',
+          harUnder: o.underopgaver.length > 0,
+          underPil: udf ? '▾' : '▸',
+          underVis: udf && o.underopgaver.length > 0,
+          underTaeller: o.underopgaver.filter(function (u) { return u.faerdig; }).length + '/' + o.underopgaver.length,
+          kommentarTaeller: o.kommentarer.length ? '💬 ' + o.kommentarer.length : '',
+          underopgaver: o.underopgaver.map(function (u, ui) {
+            return {
+              navn: u.navn, flueben: u.faerdig ? '✓' : '',
+              boksStil: 'width:16px; height:16px; flex:none; cursor:pointer; font-size:10px; line-height:1; color:#fff; border:1px solid ' + (u.faerdig ? '#16A34A' : '#C4C7CE') + '; background:' + (u.faerdig ? '#16A34A' : '#fff') + ';',
+              navnStil: 'font-size:13px; color:' + (u.faerdig ? '#9E9E9E' : '#4A4A4A') + ';',
+              status: u.faerdig ? 'Færdig' : 'Åben',
+              ini: self.bruger(o.ansvarlige[0]).ini, avatarStil: AV(self.bruger(o.ansvarlige[0]), 22),
+              toggle: function () { u.faerdig = !u.faerdig; self.forceUpdate(); }
+            };
+          }),
+          toggleUnder: function () { const u = Object.assign({}, st.udfoldet); u[o.id] = !udf; self.setState({ udfoldet: u }); },
+          aabn: function () { self.setState({ panelId: o.id }); },
+          dragStart: function (e) { self.drag = o.id; e.dataTransfer.effectAllowed = 'move'; },
+          dragOver: function (e) { e.preventDefault(); },
+          drop: function (e) { e.preventDefault(); e.stopPropagation(); if (self.drag && self.drag !== o.id) self.flytOpgave(self.drag, g.id, o.id); self.drag = null; }
+        };
+      };
+
+      base.grupper = aktivBoard.grupper.map(function (g) {
+        const synlige = g.opgaver.filter(function (o) { return self.passerFilter(o); });
+        const total = Math.max(synlige.length, 1);
+        return {
+          navn: g.navn, antal: synlige.length, aaben: !g.foldet, pil: g.foldet ? '▸' : '▾',
+          pilStil: 'background:transparent; border:0; font-size:11px; cursor:pointer; padding:0; width:14px; color:' + g.farve + ';',
+          navnStil: 'font-size:16px; font-weight:600; color:' + g.farve + ';',
+          boksStil: 'background:#fff; border:1px solid #E6E8EC; border-left:4px solid ' + g.farve + ';',
+          toggle: function () { g.foldet = !g.foldet; self.forceUpdate(); },
+          fordeling: STATUS.map(function (s) {
+            const n = synlige.filter(function (o) { return o.status === s.navn; }).length;
+            return { stil: 'width:' + (n / total * 100) + '%; background:' + s.f + ';', titel: s.navn + ': ' + n };
+          }),
+          raekker: synlige.map(function (o) { return raekke(o, g); }),
+          nyVaerdi: st.nyOpgave[g.id] || '',
+          nyAendring: function (e) { const n = Object.assign({}, st.nyOpgave); n[g.id] = e.target.value; self.setState({ nyOpgave: n }); },
+          nyTast: function (e) { if (e.key === 'Enter') self.tilfoejOpgave(g.id); },
+          dragOver: function (e) { e.preventDefault(); },
+          drop: function (e) { e.preventDefault(); if (self.drag) self.flytOpgave(self.drag, g.id, null); self.drag = null; }
+        };
+      });
+
+      const boardOpgaver = [];
+      aktivBoard.grupper.forEach(function (g) {
+        g.opgaver.forEach(function (o) { if (self.passerFilter(o)) boardOpgaver.push({ o: o, g: g }); });
+      });
+
+      base.kanbanKolonner = STATUS.map(function (s) {
+        const kort = boardOpgaver.filter(function (x) { return x.o.status === s.navn; });
+        return {
+          navn: s.navn, prikStil: PRIK(s.f, 9), antal: kort.length,
+          dragOver: function (e) { e.preventDefault(); },
+          drop: function (e) { e.preventDefault(); if (self.drag) self.saetStatus(self.drag, s.navn); self.drag = null; },
+          kort: kort.map(function (x) {
+            return {
+              navn: x.o.navn, gruppe: x.g.navn,
+              kortStil: 'border:1px solid #E6E8EC; border-top:3px solid ' + self.prio(x.o.prioritet).f + '; padding:12px; cursor:pointer; background:#fff;',
+              deadline: self.dtoTekst(x.o.slut),
+              deadlineStil: 'margin-left:auto; font-size:11px; color:' + self.deadlineFarve(x.o) + ';',
+              ansvarlige: x.o.ansvarlige.map(function (id) { const b = self.bruger(id); return { navn: b.navn, ini: b.ini, stil: AV(b, 22) }; }),
+              aabn: function () { self.setState({ panelId: x.o.id }); },
+              dragStart: function (e) { self.drag = x.o.id; e.dataTransfer.effectAllowed = 'move'; }
+            };
+          })
+        };
+      });
+
+      const origin = new Date('2026-07-27');
+      const spanDage = 63;
+      base.ganttUger = [];
+      for (let i = 0; i < 9; i++) {
+        const d = new Date(origin.getTime() + i * 7 * 86400000);
+        base.ganttUger.push({ label: 'Uge ' + (31 + i) + ' · ' + d.getDate() + '/' + (d.getMonth() + 1) });
+      }
+      base.ganttRaekker = boardOpgaver.map(function (x) {
+        const s = Math.max((new Date(x.o.start) - origin) / 86400000, 0);
+        const e = Math.min((new Date(x.o.slut) - origin) / 86400000 + 1, spanDage);
+        const farve = self.status(x.o.status).f;
+        const tekstFarve = self.status(x.o.status).t;
+        return {
+          navn: x.o.navn, periode: self.dtoTekst(x.o.start) + ' – ' + self.dtoTekst(x.o.slut),
+          barTekst: self.dtoTekst(x.o.start) + ' – ' + self.dtoTekst(x.o.slut),
+          barStil: 'position:relative; margin-left:' + (s / spanDage * 100) + '%; width:' + (Math.max(e - s, 2) / spanDage * 100) + '%; height:24px; background:' + farve + '; color:' + tekstFarve + '; font-size:10.5px; display:flex; align-items:center; padding:0 8px; overflow:hidden; white-space:nowrap;',
+          aabn: function () { self.setState({ panelId: x.o.id }); }
+        };
+      });
+    }
+
+    base.visPanel = !!st.panelId;
+    if (st.panelId) {
+      const x = this.findOpgave(st.panelId);
+      if (x) {
+        const o = x.o;
+        base.lukPanel = function () { self.setState({ panelId: null }); };
+        base.panelSaetStatus = function (e) { self.saetStatus(o.id, e.target.value); };
+        base.panelSaetPrio = function (e) { self.saetPrio(o.id, e.target.value); };
+        const s = this.status(o.status), p = this.prio(o.prioritet);
+        base.panel = {
+          navn: o.navn, sti: x.k.navn + ' · ' + x.b.navn + ' · ' + x.g.navn,
+          status: o.status, prioritet: o.prioritet,
+          statusStil: 'width:100%; height:40px; border:0; font-size:13.5px; font-weight:600; padding:0 10px; cursor:pointer; background:' + s.f + '; color:' + s.t + ';',
+          prioStil: 'width:100%; height:40px; border:1px solid #E1E4E9; font-size:13.5px; padding:0 10px; cursor:pointer; background:#fff; color:' + p.f + '; font-weight:600;',
+          ansvarlige: o.ansvarlige.map(function (id) { const b = self.bruger(id); return { navn: b.navn, ini: b.ini, stil: AV(b, 30) }; }),
+          periode: self.dtoTekst(o.start) + ' – ' + self.dtoTekst(o.slut),
+          periodeStil: 'font-size:14px; color:' + self.deadlineFarve(o) + ';',
+          noter: o.noter || 'Ingen noter endnu.',
+          harUnder: o.underopgaver.length > 0,
+          underTaeller: o.underopgaver.filter(function (u) { return u.faerdig; }).length + '/' + o.underopgaver.length,
+          underopgaver: o.underopgaver.map(function (u) {
+            return {
+              navn: u.navn, flueben: u.faerdig ? '✓' : '',
+              boksStil: 'width:18px; height:18px; flex:none; cursor:pointer; font-size:11px; line-height:1; color:#fff; border:1px solid ' + (u.faerdig ? '#16A34A' : '#C4C7CE') + '; background:' + (u.faerdig ? '#16A34A' : '#fff') + ';',
+              navnStil: 'font-size:14px; color:' + (u.faerdig ? '#9E9E9E' : '#181818') + ';',
+              toggle: function () { u.faerdig = !u.faerdig; self.forceUpdate(); }
+            };
+          }),
+          filer: o.filer.length ? o.filer : [{ navn: 'Ingen vedhæftede filer', type: '—', meta: 'Træk filer hertil' }],
+          kommentarer: o.kommentarer.map(function (c) {
+            const b = self.bruger(c.u);
+            const dele = c.tekst.split(/(@[A-ZÆØÅ][a-zæøå]+ [A-ZÆØÅ][a-zæøå]+)/g);
+            return {
+              navn: b.navn, ini: b.ini, avatarStil: AV(b, 30), tid: c.tid,
+              tekstNode: React.createElement('span', null, dele.map(function (d, i) {
+                return d.charAt(0) === '@'
+                  ? React.createElement('span', { key: i, style: { color: '#3355FF', fontWeight: 600 } }, d)
+                  : React.createElement('span', { key: i }, d);
+              }))
+            };
+          }),
+          log: o.log.map(function (l) { return { tekst: l.tekst, tid: l.tid, prikStil: PRIK(l.farve, 7, ' margin-top:6px;') }; })
+        };
+        base.kommentarUdkast = st.kommentarUdkast;
+        base.saetKommentar = function (e) { self.setState({ kommentarUdkast: e.target.value }); };
+        base.mentionValg = this.db.brugere.map(function (b) {
+          return { label: '@' + b.navn.split(' ')[0], indsaet: function () { self.setState({ kommentarUdkast: (st.kommentarUdkast + ' @' + b.navn).trim() + ' ' }); } };
+        });
+        base.sendKommentar = function () {
+          const t = st.kommentarUdkast.trim();
+          if (!t) return;
+          o.kommentarer.push({ u: st.brugerId, tid: 'lige nu', tekst: t });
+          o.log.unshift({ tekst: self.bruger(st.brugerId).navn + ' skrev en kommentar', tid: 'lige nu', farve: '#3355FF' });
+          self.setState({ kommentarUdkast: '' });
+        };
+      } else {
+        base.visPanel = false;
+      }
+    }
+
+    base.visModal = !!st.modal;
+    if (st.modal) {
+      const m = st.modal;
+      base.modalTitel = m.type === 'kunde' ? 'Opret ny kunde' : 'Opret nyt board';
+      base.modalHjaelp = m.type === 'kunde' ? 'Kunden får sit eget workspace med tre standardgrupper.' : 'Boardet oprettes med grupperne Denne uge, Backlog og Afsluttet.';
+      base.modalPlaceholder = m.type === 'kunde' ? 'fx Hvidbjerg Entreprise A/S' : 'fx Leadgenerering';
+      base.modalVaerdi = st.modalVaerdi;
+      base.saetModalVaerdi = function (e) { self.setState({ modalVaerdi: e.target.value }); };
+      base.lukModal = function () { self.setState({ modal: null, modalVaerdi: '' }); };
+      base.gemModal = function () {
+        const navn = st.modalVaerdi.trim();
+        if (!navn) return;
+        const grupper = function (pre) {
+          return [
+            { id: pre + 'g0', navn: 'Denne uge', farve: '#FF442B', foldet: false, opgaver: [] },
+            { id: pre + 'g1', navn: 'Backlog', farve: '#9E9E9E', foldet: false, opgaver: [] },
+            { id: pre + 'g2', navn: 'Afsluttet', farve: '#16A34A', foldet: false, opgaver: [] }
+          ];
+        };
+        if (m.type === 'kunde') {
+          const kid = 'k' + Math.random().toString(36).slice(2, 6);
+          const bid = kid + 'b0';
+          self.db.kunder.push({
+            id: kid, navn: navn, kort: navn.slice(0, 2).toUpperCase(), branche: 'Ny kunde',
+            boards: [{ id: bid, navn: 'Onboarding', grupper: grupper(bid) }]
+          });
+          const a = Object.assign({}, st.aabneKunder); a[kid] = true;
+          self.setState({ modal: null, modalVaerdi: '', aabneKunder: a, nav: { type: 'board', kundeId: kid, boardId: bid } });
+        } else {
+          const k = self.kunde(m.kundeId);
+          const bid = k.id + 'b' + Math.random().toString(36).slice(2, 5);
+          k.boards.push({ id: bid, navn: navn, grupper: grupper(bid) });
+          self.setState({ modal: null, modalVaerdi: '', nav: { type: 'board', kundeId: k.id, boardId: bid }, visning: 'tabel' });
+        }
+      };
+    }
+    base.aabnNyKunde = function () { self.setState({ modal: { type: 'kunde' }, modalVaerdi: '' }); };
+
+    return base;
+  }
+}
+
+</script>
+</body>
+</html>
