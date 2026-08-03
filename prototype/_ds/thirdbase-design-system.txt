@@ -1,0 +1,882 @@
+# thirdbase Design System - eksporteret fra Claude Design
+# Kilde: _ds/thirdbase-design-system-3d380fa6-a32e-4c5d-8d0f-3e5f82d02e97/
+
+
+===== FILE: styles.css =====
+/* thirdbase Design System — global stylesheet entry point.
+   Consumers link THIS file. It is a manifest of @import lines only. */
+@import url("tokens/fonts.css");
+@import url("tokens/colors.css");
+@import url("tokens/typography.css");
+@import url("tokens/spacing.css");
+@import url("tokens/slides.css");
+@import url("tokens/base.css");
+@import url("tokens/slide-layout.css");
+
+
+===== FILE: tokens/base.css =====
+/* Base element defaults for thirdbase. Consumers get sensible typography and
+   link styling out of the box. */
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:var(--font-sans);
+  font-size:var(--text-base);
+  line-height:var(--lh-prose);
+  color:var(--text-body);
+  background:var(--surface-page);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4{
+  font-family:var(--font-display);
+  color:var(--text-display);
+  line-height:var(--lh-heading);
+  letter-spacing:var(--ls-heading);
+  font-weight:var(--fw-regular);
+  margin:0 0 0.4em;
+}
+h1{font-size:var(--text-h1)}
+h2{font-size:var(--text-h2)}
+h3{font-size:var(--text-h3);font-weight:var(--fw-bold)}
+p{margin:0 0 1em;text-wrap:pretty}
+a{color:var(--accent-secondary);text-decoration:none;transition:color var(--dur-fast) var(--ease-standard)}
+a:hover{color:var(--accent-secondary-hover)}
+strong,b{font-weight:var(--fw-bold)}
+small{font-size:var(--text-sm);color:var(--text-muted)}
+
+/* Eyebrow / kicker label — recurring thirdbase motif */
+.tb-eyebrow{
+  font-size:var(--text-xs);
+  font-weight:var(--fw-bold);
+  letter-spacing:var(--ls-eyebrow);
+  text-transform:uppercase;
+  color:var(--text-muted);
+}
+
+
+===== FILE: tokens/colors.css =====
+:root{
+  /* ---- Brand palette (from thirdbase Design System, July 2026) ---- */
+  --tb-red: #FF442B;        /* Primary Color — the signature accent */
+  --tb-red-600: #E23417;    /* pressed/darker red */
+  --tb-red-100: #FFE3DE;    /* soft red tint (from logo diamond highlight) */
+  --tb-blue: #3355FF;       /* Primary Accent — secondary highlight */
+  --tb-blue-600: #2440E0;   /* pressed/darker blue */
+  --tb-blue-100: #E1E6FF;   /* soft blue tint */
+
+  --tb-ink: #444444;        /* Primary Font Color */
+  --tb-ink-muted: #9E9E9E;  /* Secondary Font Color */
+  --tb-ink-strong: #1A1A1A; /* near-black for large display type */
+  --tb-ink-alt: #434343;    /* body copy variant used on the type slide */
+  --tb-ink-table: #292B3D;  /* table ink (audit comparison table) */
+  --tb-white: #FFFFFF;
+  --tb-black: #111111;
+  --tb-on-dark: #F5F5F5;    /* text color used on dark/colored fills */
+
+  /* neutral surface ramp, anchored on the #F3F3F3 background accent */
+  --tb-bg: #FFFFFF;         /* Background Color */
+  --tb-bg-accent: #F3F3F3;  /* Background accent — section fills, cards */
+  --tb-bg-dark: #242424;    /* Secondary Background Color */
+  --tb-bg-sunken: #EAEAEA;
+  --tb-line: #E4E4E4;       /* hairline borders */
+  --tb-line-strong: #D2D2D2;
+
+  /* ---- Semantic aliases ---- */
+  --text-body: var(--tb-ink);
+  --text-muted: var(--tb-ink-muted);
+  --text-display: var(--tb-ink);   /* deck titles are #444444, not black */
+  --text-on-dark: var(--tb-on-dark);
+  --text-accent: var(--tb-red);
+
+  --surface-page: var(--tb-bg);
+  --surface-card: var(--tb-white);
+  --surface-accent: var(--tb-bg-accent);
+  --surface-dark: var(--tb-bg-dark);
+  --surface-brand: var(--tb-red);   /* the red card/tile fill */
+
+  --border-hairline: var(--tb-line);
+  --border-strong: var(--tb-line-strong);
+
+  --accent-primary: var(--tb-red);
+  --accent-primary-hover: var(--tb-red-600);
+  --accent-secondary: var(--tb-blue);
+  --accent-secondary-hover: var(--tb-blue-600);
+
+  --focus-ring: 0 0 0 3px var(--tb-red-100);
+}
+
+
+===== FILE: tokens/fonts.css =====
+/* thirdbase uses Inter Tight — a low-contrast geometric sans serif — for ALL text.
+   Loaded from Google Fonts (the genuine family, not a substitute). */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+
+===== FILE: tokens/spacing.css =====
+:root{
+  /* 4px base spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  /* Corner radii — the SOURCE DECK uses prstGeom="rect" everywhere, i.e.
+     radius 0. Keep slide surfaces square (--slide-radius). These radii are
+     for web/app surfaces only, where a little softening is acceptable. */
+  --radius-none: 0px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  /* Borders */
+  --border-width: 1px; /* @kind other */
+
+  /* Shadows — soft, low, neutral. thirdbase leans on flat fills + hairlines,
+     shadows are subtle. */
+  --shadow-sm: 0 1px 2px rgba(17,17,17,0.05);
+  --shadow-md: 0 4px 16px rgba(17,17,17,0.08);
+  --shadow-lg: 0 12px 40px rgba(17,17,17,0.10);
+
+  /* Layout */
+  --container-max: 1200px; /* @kind spacing */
+  --slide-w: 1280px; /* @kind spacing */
+  --slide-h: 720px; /* @kind spacing */
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1); /* @kind other */
+  --dur-fast: 120ms; /* @kind other */
+  --dur-base: 200ms; /* @kind other */
+  --dur-slow: 360ms; /* @kind other */
+}
+
+
+===== FILE: tokens/typography.css =====
+:root{
+  /* ---- Font family ---- */
+  --font-sans: 'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-display: var(--font-sans); /* thirdbase uses one family everywhere */
+
+  /* ---- Weights ----
+     The deck embeds only Regular and Bold (+ italics). There is NO
+     medium/semibold weight in the source — use 400 or 700 only. */
+  --fw-regular: 400; /* @kind font */
+  --fw-bold: 700; /* @kind font */
+
+  /* ============================================================
+     SLIDE TYPE SCALE — measured from `uploads/Design System.pptx`.
+     Deck is authored at 720pt wide; these are the px equivalents on a
+     1280px stage (x1.7778). The pt value is the authored size.
+     ============================================================ */
+  --text-section: 72.9px;   /* 41pt — section divider & cover title */
+  --text-title: 49.8px;     /* 28pt — standard slide title (master default) */
+  --text-title-long: 44.4px;/* 25pt — override for long titles */
+  --text-card-title: 37.3px;/* 21pt bold — card title / stat value */
+  --text-card-title-sm: 32px;/* 18pt bold — card title in 2-row grid; master body */
+  --text-contents: 23.1px;  /* 13pt — contents/table of contents rows */
+  --text-lead: 21.3px;      /* 12pt — lead paragraph, subtitle, campaign title (bold) */
+  --text-card-num: 19.6px;  /* 11pt — card number, stat label */
+  --text-body: 17.8px;      /* 10pt — THE workhorse body size, also bold subheads */
+  --text-body-sm: 16px;     /* 9pt  — small body, meta, bold subheading */
+  --text-caption: 14.2px;   /* 8pt  — captions & labels, usually #9E9E9E */
+  --text-table-label: 12.4px;/* 7pt — table row label */
+  --text-table-cell: 10.7px;/* 6pt  — table cell */
+  --text-hero-stat: 167.1px;/* 94pt — the "73%" hero metric */
+
+  /* ---- Web/UI ramp (for non-slide surfaces) ---- */
+  --text-h1: 44px;
+  --text-h2: 32px;
+  --text-h3: 24px;
+  --text-lg: 20px;
+  --text-base: 16px;
+  --text-sm: 14px;
+  --text-xs: 12px;
+
+  /* ---- Line heights (from the deck) ---- */
+  /* 80% oversized specimens, 100% titles, 115% body (master default) */
+  --lh-tight: 0.8; /* @kind other */
+  --lh-heading: 1; /* @kind other */
+  --lh-body: 1.15; /* @kind other */
+  --lh-prose: 1.45; /* @kind other */
+
+  /* ---- Letter spacing ----
+     The source sets NO tracking anywhere — Inter Tight is already tight.
+     Keep display type at 0; only use the eyebrow tracking for small caps. */
+  --ls-display: 0; /* @kind other */
+  --ls-heading: 0; /* @kind other */
+  --ls-body: 0; /* @kind other */
+  --ls-eyebrow: 0.08em; /* @kind other */
+}
+
+
+===== FILE: _ds_bundle.js =====
+/* @ds-bundle: {"format":4,"namespace":"ThirdbaseDesignSystem_3d380f","components":[{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Card","sourcePath":"components/core/Card.jsx"},{"name":"ComparisonTable","sourcePath":"components/core/ComparisonTable.jsx"},{"name":"NumberBadge","sourcePath":"components/core/NumberBadge.jsx"},{"name":"StatCallout","sourcePath":"components/core/StatCallout.jsx"},{"name":"Tag","sourcePath":"components/core/Tag.jsx"}],"sourceHashes":{"components/core/Button.jsx":"526273913dfb","components/core/Card.jsx":"c09c86bdf646","components/core/ComparisonTable.jsx":"2076edefb871","components/core/NumberBadge.jsx":"d7d46b59c4eb","components/core/StatCallout.jsx":"3695751a21f6","components/core/Tag.jsx":"dda8cf658f65"},"inlinedExternals":[],"unexposedExports":[]} */
+
+(() => {
+
+const __ds_ns = (window.ThirdbaseDesignSystem_3d380f = window.ThirdbaseDesignSystem_3d380f || {});
+
+const __ds_scope = {};
+
+(__ds_ns.__errors = __ds_ns.__errors || []);
+
+// components/core/Button.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase Button — geometric, restrained radii, brand red default.
+ */
+function Button({
+  children,
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  type = 'button',
+  onClick,
+  style,
+  ...rest
+}) {
+  const sizes = {
+    sm: {
+      padding: '8px 14px',
+      fontSize: 13
+    },
+    md: {
+      padding: '11px 20px',
+      fontSize: 15
+    },
+    lg: {
+      padding: '14px 26px',
+      fontSize: 17
+    }
+  };
+  const base = {
+    fontFamily: 'var(--font-sans)',
+    fontWeight: 700,
+    lineHeight: 1,
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid transparent',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.45 : 1,
+    letterSpacing: '-0.005em',
+    transition: 'background var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 8,
+    ...sizes[size]
+  };
+  const variants = {
+    primary: {
+      background: 'var(--tb-red)',
+      color: '#fff'
+    },
+    secondary: {
+      background: 'var(--tb-blue)',
+      color: '#fff'
+    },
+    dark: {
+      background: 'var(--tb-ink-strong)',
+      color: '#fff'
+    },
+    outline: {
+      background: 'transparent',
+      color: 'var(--tb-ink)',
+      borderColor: 'var(--tb-line-strong)'
+    },
+    ghost: {
+      background: 'transparent',
+      color: 'var(--tb-ink)'
+    }
+  };
+  const hover = {
+    primary: 'var(--tb-red-600)',
+    secondary: 'var(--tb-blue-600)',
+    dark: '#000',
+    outline: 'var(--tb-bg-accent)',
+    ghost: 'var(--tb-bg-accent)'
+  };
+  const [h, setH] = React.useState(false);
+  const v = variants[variant] || variants.primary;
+  const hoverStyle = h && !disabled ? variant === 'outline' || variant === 'ghost' ? {
+    background: hover[variant]
+  } : {
+    background: hover[variant]
+  } : null;
+  return /*#__PURE__*/React.createElement("button", _extends({
+    type: type,
+    disabled: disabled,
+    onClick: onClick,
+    onMouseEnter: () => setH(true),
+    onMouseLeave: () => setH(false),
+    style: {
+      ...base,
+      ...v,
+      ...hoverStyle,
+      ...style
+    }
+  }, rest), children);
+}
+Object.assign(__ds_scope, { Button });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Button.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/Card.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase Card — flat surface with hairline border; optional accent top rule.
+ */
+function Card({
+  children,
+  padding = 24,
+  accent = false,
+  elevated = false,
+  style,
+  ...rest
+}) {
+  return /*#__PURE__*/React.createElement("div", _extends({
+    style: {
+      background: 'var(--surface-card)',
+      border: '1px solid var(--tb-line)',
+      borderTop: accent ? '3px solid var(--tb-red)' : '1px solid var(--tb-line)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: elevated ? 'var(--shadow-md)' : 'none',
+      padding,
+      color: 'var(--text-body)',
+      ...style
+    }
+  }, rest), children);
+}
+Object.assign(__ds_scope, { Card });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Card.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/ComparisonTable.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase ComparisonTable — feature/spec comparison across columns,
+ * modeled on the SEO audit table (Hygiene vs Technical). Cells accept
+ * true (check), false/"-" (dash), or any string/node.
+ */
+function ComparisonTable({
+  columns = [],
+  rows = [],
+  highlightCol = null,
+  style,
+  ...rest
+}) {
+  const check = /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--tb-red)',
+      fontWeight: 700
+    }
+  }, "\u2713");
+  const dash = /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: 'var(--tb-ink-muted)'
+    }
+  }, "\u2013");
+  const render = v => v === true ? check : v === false || v === '-' ? dash : v;
+  return /*#__PURE__*/React.createElement("table", _extends({
+    style: {
+      width: '100%',
+      borderCollapse: 'collapse',
+      fontFamily: 'var(--font-sans)',
+      fontSize: 15,
+      color: 'var(--tb-ink)',
+      ...style
+    }
+  }, rest), /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: 'left',
+      padding: '12px 16px',
+      fontWeight: 700,
+      fontSize: 12,
+      letterSpacing: '0.06em',
+      textTransform: 'uppercase',
+      color: 'var(--tb-ink-muted)',
+      borderBottom: '1px solid var(--tb-line-strong)'
+    }
+  }), columns.map((c, i) => /*#__PURE__*/React.createElement("th", {
+    key: i,
+    style: {
+      textAlign: 'left',
+      padding: '12px 16px',
+      fontWeight: 700,
+      borderBottom: '1px solid var(--tb-line-strong)',
+      background: highlightCol === i ? 'var(--tb-red-100)' : 'transparent',
+      color: highlightCol === i ? 'var(--tb-red-600)' : 'var(--tb-ink-strong)'
+    }
+  }, c)))), /*#__PURE__*/React.createElement("tbody", null, rows.map((r, ri) => /*#__PURE__*/React.createElement("tr", {
+    key: ri
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: '11px 16px',
+      borderBottom: '1px solid var(--tb-line)',
+      color: 'var(--tb-ink)'
+    }
+  }, r.label), r.cells.map((cell, ci) => /*#__PURE__*/React.createElement("td", {
+    key: ci,
+    style: {
+      padding: '11px 16px',
+      borderBottom: '1px solid var(--tb-line)',
+      background: highlightCol === ci ? 'rgba(255,68,43,0.05)' : 'transparent'
+    }
+  }, render(cell)))))));
+}
+Object.assign(__ds_scope, { ComparisonTable });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/ComparisonTable.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/NumberBadge.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase NumberBadge — the recurring 01 / 02 / 03 numbering motif.
+ * Used to enumerate the three-way approach, work areas, campaign lists, etc.
+ */
+function NumberBadge({
+  n = 1,
+  tone = 'red',
+  size = 'md',
+  style,
+  ...rest
+}) {
+  const num = typeof n === 'number' ? String(n).padStart(2, '0') : n;
+  const sizes = {
+    sm: 22,
+    md: 34,
+    lg: 56
+  };
+  const color = tone === 'blue' ? 'var(--tb-blue)' : tone === 'ink' ? 'var(--tb-ink)' : 'var(--tb-red)';
+  return /*#__PURE__*/React.createElement("span", _extends({
+    style: {
+      fontFamily: 'var(--font-sans)',
+      fontWeight: 400,
+      fontSize: sizes[size] || sizes.md,
+      lineHeight: 1,
+      letterSpacing: '-0.02em',
+      color,
+      fontVariantNumeric: 'tabular-nums',
+      display: 'inline-block',
+      ...style
+    }
+  }, rest), num);
+}
+Object.assign(__ds_scope, { NumberBadge });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/NumberBadge.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/StatCallout.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase StatCallout — oversized metric with label, echoing the "73%" problem slide
+ * and the YoY delta callouts.
+ */
+function StatCallout({
+  value,
+  label,
+  tone = 'red',
+  delta,
+  align = 'left',
+  style,
+  ...rest
+}) {
+  const color = tone === 'blue' ? 'var(--tb-blue)' : tone === 'ink' ? 'var(--tb-ink-strong)' : 'var(--tb-red)';
+  const deltaColor = delta && delta.trim().startsWith('-') ? 'var(--tb-red)' : 'var(--tb-blue)';
+  return /*#__PURE__*/React.createElement("div", _extends({
+    style: {
+      textAlign: align,
+      fontFamily: 'var(--font-sans)',
+      ...style
+    }
+  }, rest), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      alignItems: 'baseline',
+      gap: 10,
+      justifyContent: align === 'center' ? 'center' : 'flex-start'
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 88,
+      fontWeight: 400,
+      lineHeight: 0.95,
+      letterSpacing: '-0.03em',
+      color
+    }
+  }, value), delta ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22,
+      fontWeight: 700,
+      color: deltaColor
+    }
+  }, delta) : null), label ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 16,
+      lineHeight: 1.5,
+      color: 'var(--tb-ink)',
+      maxWidth: 460
+    }
+  }, label) : null);
+}
+Object.assign(__ds_scope, { StatCallout });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/StatCallout.jsx", error: String((e && e.message) || e) }); }
+
+// components/core/Tag.jsx
+try { (() => {
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/**
+ * thirdbase Tag — small pill/label for categories, statuses, eyebrows.
+ */
+function Tag({
+  children,
+  tone = 'neutral',
+  variant = 'soft',
+  style,
+  ...rest
+}) {
+  const palette = {
+    neutral: {
+      soft: ['var(--tb-bg-accent)', 'var(--tb-ink)'],
+      solid: ['var(--tb-ink-strong)', '#fff'],
+      outline: ['transparent', 'var(--tb-ink)']
+    },
+    red: {
+      soft: ['var(--tb-red-100)', 'var(--tb-red-600)'],
+      solid: ['var(--tb-red)', '#fff'],
+      outline: ['transparent', 'var(--tb-red-600)']
+    },
+    blue: {
+      soft: ['var(--tb-blue-100)', 'var(--tb-blue-600)'],
+      solid: ['var(--tb-blue)', '#fff'],
+      outline: ['transparent', 'var(--tb-blue-600)']
+    }
+  };
+  const [bg, fg] = (palette[tone] || palette.neutral)[variant];
+  return /*#__PURE__*/React.createElement("span", _extends({
+    style: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 6,
+      fontFamily: 'var(--font-sans)',
+      fontSize: 12,
+      fontWeight: 700,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase',
+      padding: '5px 10px',
+      borderRadius: 'var(--radius-pill)',
+      background: bg,
+      color: fg,
+      border: variant === 'outline' ? '1px solid var(--tb-line-strong)' : '1px solid transparent',
+      lineHeight: 1,
+      ...style
+    }
+  }, rest), children);
+}
+Object.assign(__ds_scope, { Tag });
+})(); } catch (e) { __ds_ns.__errors.push({ path: "components/core/Tag.jsx", error: String((e && e.message) || e) }); }
+
+__ds_ns.Button = __ds_scope.Button;
+
+__ds_ns.Card = __ds_scope.Card;
+
+__ds_ns.ComparisonTable = __ds_scope.ComparisonTable;
+
+__ds_ns.NumberBadge = __ds_scope.NumberBadge;
+
+__ds_ns.StatCallout = __ds_scope.StatCallout;
+
+__ds_ns.Tag = __ds_scope.Tag;
+
+})();
+
+
+===== FILE: readme.md =====
+# thirdbase — Design System
+
+A brand & presentation design system for **thirdbase**, a full-funnel marketing agency.
+
+> _"We are thirdbase: a full-funnel marketing agency."_
+
+thirdbase sells **a three-way approach to sales**:
+
+1. **01 · Digital Marketing** — paid social & paid search
+2. **02 · Lead Scoring** — turning customer data into ranked, actionable leads
+3. **03 · CRM System** — one system for every lead, campaign, and conversation
+
+This system codifies the brand's colors, typography, the recurring `01/02/03`
+numbering motif, the diamond mark, reusable UI primitives, and a set of sample
+client-deck slides.
+
+## Sources
+
+Everything here is derived from three artifacts the user provided (stored in `uploads/`):
+
+- **`uploads/Design System.pptx`** — **the authoritative source.** The real 22-slide deck (13 layouts, Google Slides export, Inter Tight embedded). Every number in `tokens/slides.css` and the slide type scale is measured directly from this file's XML — not estimated. Official logo PNGs were extracted from its media.
+- **`uploads/Design-System.pdf`** — a PDF export of the same deck. Source of the stated palette and typography spec.
+- **`uploads/Skærmbillede 2026-07-23 kl. 11.31.02.png`** — a screenshot of the logo lockup (superseded by the PNGs extracted from the PPTX).
+
+No codebase or Figma file was provided — thirdbase's "product" in the source is the
+**client deck / brand guide itself**, so the primary UI kit here is the **Slides** set
+rather than an application.
+
+---
+
+## Slide geometry — the enforced grid
+
+**This is the section to read before making any slide.** The deck is authored at
+**720 × 405 pt** (10 × 5.625 in, 16:9). All tokens are that geometry scaled to a
+**1280 × 720 px** stage — the factor is exactly `1280/720 = 1.7778` (pt → px).
+
+> **Do not round these values to a 4/8-px grid.** The margin really is `25.2px` and
+> the card inset really is `12.8px`. Use the tokens in `tokens/slides.css`.
+
+### Page structure
+
+| Element | Value | Token |
+| --- | --- | --- |
+| Stage | 1280 × 720 px | `--slide-width` / `--slide-height` |
+| Margin (all four edges) | **25.2px** | `--slide-margin` |
+| Content width | 1229.6px | `--slide-content-width` |
+| Title box | x 25.2, y 25.2, w 1192.7, h 65.2 | `--slide-title-*` |
+| Lead / subtitle band | y 96.7, w 1229.6, h 96.6 | `--slide-lead-*` |
+| Content top | y 259.9 (or 144.5 tight) | `--slide-content-y` |
+| Footer text | y 672.1, h 35.6 | `--slide-footer-*` |
+| Footer logo | x 25.2, y 678, 115.9 × 19.4 | `--slide-logo-*` |
+| Section-divider title | y 453, w 756.5, h 244.4, bottom-anchored | `--slide-section-*` |
+| Cover title | y 237.8 | `--slide-cover-y` |
+
+### Slide type scale (authored pt → px on the 1280 stage)
+
+| pt | px | Use | Token |
+| --- | --- | --- | --- |
+| 94 | 167.1 | Hero stat ("73%"), always `#FF442B` | `--text-hero-stat` |
+| 41 | 72.9 | Section divider + cover title | `--text-section` |
+| 28 | 49.8 | **Standard slide title** (master default) | `--text-title` |
+| 25 | 44.4 | Long-title override | `--text-title-long` |
+| 21 | 37.3 | Card title / stat value (**bold**) | `--text-card-title` |
+| 18 | 32 | Card title in 2×3 grid (**bold**) | `--text-card-title-sm` |
+| 13 | 23.1 | Contents rows | `--text-contents` |
+| 12 | 21.3 | Lead paragraph, subtitle, campaign title | `--text-lead` |
+| 11 | 19.6 | Card number, stat label | `--text-card-num` |
+| **10** | **17.8** | **Body copy — the workhorse size** | `--text-body` |
+| 9 | 16 | Small body, meta | `--text-body-sm` |
+| 8 | 14.2 | Captions & labels (usually `#9E9E9E`) | `--text-caption` |
+| 7 | 12.4 | Table row label | `--text-table-label` |
+| 6 | 10.7 | Table cell | `--text-table-cell` |
+
+### Card & tile system (the red tiles)
+
+- Width **394.9px**, gap **22.4px** (3-up starting at x = 25.2 / 442.5 / 859.9); row gap **20.1px**.
+- Inner padding **12.8px** on all sides.
+- Heights: **171.8** (short, 2×3 grid) · **306.7** (tall, 3-up) · **437.6** (xtall, with image).
+- Fill is solid **`#FF442B`** with **`#F5F5F5`** text. **No border, no shadow, radius 0.**
+- KPI stat tile: **179.8 × 135.2**, label 11pt, value 21pt bold.
+- Palette swatch column: **230.5px** wide, gap **19.3px**, heights 553 / 264.5.
+
+### Line heights & tracking
+
+- Titles: **100%** (`--lh-heading`)
+- Body: **115%** (`--lh-body`) — the master body default
+- Oversized display specimens: **80%** (`--lh-tight`)
+- **Tracking is 0 everywhere.** The source sets no letter-spacing; Inter Tight is already tight. Only small uppercase eyebrows use `+0.08em`.
+
+### How to get this right automatically
+
+Use the utility classes in **`tokens/slide-layout.css`** (shipped via `styles.css`) —
+padding and type sizes are then correct by construction:
+
+```html
+<div class="tb-slide">
+  <h1 class="tb-slide-title">Slide title</h1>
+  <p  class="tb-slide-lead">Lead paragraph.</p>
+  <div class="tb-card-row" style="position:absolute;left:25.2px;top:390.7px">
+    <div class="tb-slide-card tb-slide-card--tall">
+      <div class="tb-slide-card-num">01</div>
+      <div class="tb-slide-card-title">Digital Marketing</div>
+    </div>
+  </div>
+  <img class="tb-slide-logo" src="assets/logo-thirdbase.png" alt="thirdbase">
+</div>
+```
+
+Or start from the **`templates/slide-deck/`** template, which ships six pre-built
+slide types already on the grid.
+
+---
+
+## Content fundamentals
+
+**Voice.** Confident, plain-spoken, consultative — an agency talking to a prospective
+client. Sentences are short and declarative. It leads with a claim, then backs it with
+data: _"Sessions remain steady, but the organic rankings have dropped slightly compared
+to last year."_
+
+**Person.** Uses **"we"** for the agency and **"you/your"** for the client
+(_"We want to bring that number down."_). Collective, partnership-oriented.
+
+**Casing.** Sentence case for body and most headings. Section eyebrows and small labels
+are **UPPERCASE with wide tracking** ("THE PROBLEM", "ORGANIC SEARCH"). The wordmark
+**"thirdbase" is always lowercase**. Numbers are always **zero-padded to two digits**
+(`01`, `02`, `03`) — this is a signature.
+
+**Numbers & proof.** Heavy use of single hero metrics ("73%", "+1%", "−12%") with a
+one-line explanation and a cited source ("Source: study by BluePaperclip"). Prices shown
+in DKK ("6.000 DKK") — the agency is Danish/European; use the period thousands separator.
+
+**Emoji / exclamation.** None. No emoji, no exclamation marks, no hype words. The tone is
+measured and evidence-led.
+
+**Examples of on-brand copy:**
+- Eyebrow: `A LOOK AT WHAT WE DO`
+- Title: `A three-way approach to sales`
+- Stat: `73% of companies are underutilizing their customer data…`
+- Section: `The Problem` · `Paid Social` · `Organic Search` · `CRM System`
+
+---
+
+## Visual foundations
+
+**Palette.** Deliberately tight — one hero accent, one secondary, a neutral ramp.
+The deck's own palette slide names six colors:
+- **Primary Color `#FF442B`** — the signature. Card/tile fills, numbers, hero stats, checks, the mark.
+- **Primary Accent `#3355FF`** — secondary highlight.
+- **Primary Font Color `#444444`** — all body **and title** text. Titles are *not* black.
+- **Secondary Font Color `#9E9E9E`** — captions, sources, image/chart placeholders.
+- **Background Color `#FFFFFF`** · **Background accent `#F3F3F3`** — panel fills.
+- **Secondary Background Color `#242424`** — dark surfaces.
+- Plus **`#F5F5F5`** for text on colored/dark fills and **`#292B3D`** for table ink.
+
+**Type.** **Inter Tight** everywhere — one family, no pairing. The deck embeds only
+**Regular (400)** and **Bold (700)** (+ italics) — there is **no 500 or 600 weight in the
+brand**. Large titles are Regular; card titles and subheadings are Bold. Tracking is 0.
+
+**Backgrounds.** Flat color fills — **no gradients, no textures, no patterns**. White is
+the default; `#F3F3F3` fills panels; `#242424` for dark surfaces.
+
+**The diamond motif.** The mark is four rotated squares (a diamond cluster) in `#FF442B`.
+
+**Corner radii.** **Zero.** Every shape in the source deck is `prstGeom="rect"` — cards,
+tiles, swatches, and image wells are all perfectly square. Use `--slide-radius` (0) on
+slide surfaces. The `--radius-*` tokens exist only for web/app surfaces.
+
+**Borders.** Hairline **1.3px** rules (the deck's connector weight, `--slide-rule-width`)
+for dividers and table rows. Red cards have **no** border.
+
+**Shadows.** **None in the source deck.** Tiles are flat solid fills. The `--shadow-*`
+tokens are for web surfaces only.
+
+**Cards.** Solid `#FF442B`, square, 12.8px inset, no border, no shadow. A number sits
+top-left at 11pt, the title below it at 21pt bold. Content is top-anchored.
+
+**Transparency / blur.** Essentially none. Colors are solid throughout.
+
+**Motion.** The source is a static deck — no motion is defined. For interactive work keep
+it understated: standard ease `cubic-bezier(0.22,0.61,0.36,1)`, ~120–200ms, fades and
+short slides. No bounce. **Flagged: motion is an addition, not from the source.**
+
+**Hover / press.** Not defined in the source. Recommended: hover darkens the fill
+(`--tb-red-600`, `--tb-blue-600`); ghost/outline fills with `--tb-bg-accent`. Focus = soft
+red ring (`--focus-ring`). **Flagged as an addition.**
+
+**Layout.** Tight, generous-width margins: **25.2px** on all four edges (~2% of stage
+width) — the deck uses nearly the full canvas. Content is left-aligned and grid-driven;
+3-up grids echo the "three-way" theme. Fixed elements: logo bottom-left, title top-left.
+
+**Imagery vibe.** The source uses `#9E9E9E` gray blocks as placeholders for photos, charts,
+and avatars — photography is deliberately deferred. One stock photo appears in the
+campaigns slide (kept as `assets/placeholder-photo.png`; **it carries an Unsplash+
+watermark and must be replaced before any real use**).
+
+---
+
+## Iconography
+
+The source contains **no custom icon set** and no icon font. The only bespoke glyph is the
+**diamond mark** (`assets/mark-thirdbase.png`). Emoji are **not** used. A checkmark `✓` and
+an en-dash `–` appear as table affordances in the audit comparison — these are plain
+Unicode characters, colored red / muted respectively, not icons from a library.
+
+**Guidance for new work:** keep iconography minimal. If icons are genuinely needed, use a
+thin geometric line set — **Lucide** (CDN: `https://unpkg.com/lucide-static`) is the closest
+match to the geometric, low-contrast feel and is the recommended substitute. **Flag any
+icon use to the user**, since the brand did not define an icon system. Prefer the numbering
+motif (`01/02/03`) and the diamond over decorative icons wherever possible.
+
+---
+
+## Fonts
+
+**Inter Tight** is the genuine brand font — the source PPTX embeds it (Regular, Bold,
+Italic, Bold Italic) and it is available on Google Fonts, so this is **not a substitution**.
+It loads via `@import` in `tokens/fonts.css`.
+
+The PPTX's embedded font binaries are Google's obfuscated `.fntdata` format, not usable
+`.ttf`/`.woff2` files, so they could not be self-hosted. **If you need offline/self-hosted
+fonts, send the real `.woff2` files** and I'll swap the `@import` for local `@font-face`
+rules.
+
+---
+
+## Components
+
+Reusable React primitives in `components/core/` (namespace exposed as
+`window.<Namespace>` — run `check_design_system` for the exact name):
+
+- **Button** — primary / secondary / dark / outline / ghost; sm·md·lg.
+- **Tag** — uppercase pill label; neutral / red / blue × soft / solid / outline.
+- **NumberBadge** — the `01/02/03` numbering motif.
+- **Card** — flat surface, hairline border, optional 3px red top rule / elevation.
+- **StatCallout** — oversized hero metric + label + optional delta chip ("73%", "+1%").
+- **ComparisonTable** — multi-column spec/feature table (the SEO audit slide).
+
+### Intentional additions
+The source is a brand & deck guide with **no explicit component inventory**, so these
+primitives were authored to match what the deck actually uses. Each maps directly to a
+motif in the PDF (numbering, big stat, audit table, tags, cards) rather than inventing a
+generic UI library. Adjust freely — they are a starting vocabulary, not a locked spec.
+
+## UI kits / Slides
+
+- **`slides/`** — ten sample slides recreating the source deck's layouts **at exact
+  measured geometry**: Cover, Section Divider, Three-Way Approach, Big Stat (73%),
+  Comparison Table (SEO audit), Chart/KPI Tiles, Team/Intro, Campaigns, Work Areas (2×3),
+  Color Palette. Open **`slides/index.html`** for the interactive click-through.
+- **`templates/slide-deck/`** — the reusable deck template (`SlideDeck.dc.html`), six
+  slide types pre-built on the grid. **Start here for any new deck.**
+
+---
+
+## File index (manifest)
+
+- `styles.css` — **entry point**; `@import` list only.
+- `tokens/`
+  - `fonts.css` — Inter Tight from Google Fonts
+  - `colors.css` — palette + semantic aliases
+  - `typography.css` — the measured slide type scale + web ramp
+  - `spacing.css` — spacing, radii, shadows, motion
+  - **`slides.css`** — **the measured slide grid** (margins, bands, card sizes)
+  - `base.css` — element defaults
+  - **`slide-layout.css`** — **`.tb-slide*` utility classes that enforce the grid**
+- `assets/` — `logo-thirdbase.png`, `logo-thirdbase-white.png` (both extracted from the
+  PPTX), `mark-thirdbase.png` (diamond), `placeholder-photo.png` (⚠️ watermarked stock),
+  `pptx-image*.png` (raw extracts).
+- `components/core/` — Button, Tag, NumberBadge, Card, StatCallout, ComparisonTable
+  (+ `.d.ts`, `.prompt.md`, `core.card.html`).
+- `guidelines/` — foundation specimen cards (Colors, Type, Spacing, Brand, Slides).
+- `slides/` — sample deck (`index.html` + 10 slide files + `slide.css`).
+- `templates/slide-deck/` — reusable deck template.
+- `scraps/pptx-geometry.txt` — the full raw geometry dump from the PPTX, per slide. Useful
+  if you need a value not yet tokenized.
+- `thumbnail.html` · `SKILL.md` · `uploads/` (original sources).
+
+The **Design System tab** shows every `@dsCard`, grouped as
+Colors · Type · Spacing · Brand · Components · Slides.
