@@ -177,24 +177,22 @@ function mentionIds(tekst: string, byName: Map<string, string>): string[] {
 }
 
 async function main() {
-  console.log("Rydder eksisterende data …");
-  await prisma.notification.deleteMany();
-  await prisma.activity.deleteMany();
-  await prisma.attachment.deleteMany();
-  await prisma.comment.deleteMany();
-  await prisma.subtask.deleteMany();
-  await prisma.task.deleteMany();
-  await prisma.group.deleteMany();
-  await prisma.board.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.user.deleteMany();
+  // Idempotent: seed kun hvis databasen er tom, så senere data aldrig overskrives.
+  const findes = await prisma.customer.count();
+  if (findes > 0) {
+    console.log(`Databasen har allerede ${findes} kunder — springer seed over.`);
+    return;
+  }
 
   console.log("Opretter brugere …");
   const userIdByKey = new Map<string, string>();
   const userIdByName = new Map<string, string>();
   for (const b of BRUGERE) {
-    const u = await prisma.user.create({
-      data: { email: b.email, name: b.navn, initials: b.ini, color: b.f, role: b.rolle },
+    // upsert på den unikke email — genkører uden at duplikere team-brugerne.
+    const u = await prisma.user.upsert({
+      where: { email: b.email },
+      update: { name: b.navn, initials: b.ini, color: b.f, role: b.rolle },
+      create: { email: b.email, name: b.navn, initials: b.ini, color: b.f, role: b.rolle },
     });
     userIdByKey.set(b.key, u.id);
     userIdByName.set(b.navn, u.id);

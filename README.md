@@ -79,7 +79,8 @@ npm run dev
 | `GOOGLE_CLIENT_SECRET` | OAuth Client Secret |
 | `AUTH_SECRET` | Hemmelighed til NextAuth (`npx auth secret` eller `openssl rand -base64 32`) |
 | `AUTH_URL` | Appens canoniske URL (lokalt `http://localhost:3000`) |
-| `DATABASE_URL` | Postgres-forbindelse (brug pooled URL i produktion) |
+| `DATABASE_URL` | **Pooled** Postgres-forbindelse — bruges af appen i runtime |
+| `DATABASE_URL_UNPOOLED` | **Direct** Postgres-forbindelse — bruges af Prisma til migrationer (`directUrl`). Neon leverer begge; lokalt kan den være = `DATABASE_URL` |
 
 Ingen hemmeligheder ligger i repoet — `.env` er git-ignoreret. Se `.env.example`.
 
@@ -124,19 +125,20 @@ Tips:
    | `AUTH_SECRET` | genereret hemmelighed |
    | `AUTH_URL` | `https://projekt.thirdbase.dk` (jeres produktions-URL) |
    | `DATABASE_URL` | pooled Postgres connection string |
+   | `DATABASE_URL_UNPOOLED` | direct Postgres connection string (til migrationer) |
 
-4. **Build**: standard `npm run build`, som kører `prisma generate && next build`.
-   `prisma generate` kører også i `postinstall`. **Buildet kræver ingen levende
-   databaseforbindelse** — alle sider er `force-dynamic` og laver først DB-kald ved request.
-5. **Kør migrationer + seed én gang** mod produktionsdatabasen (ikke i buildet). Fx lokalt
-   med produktions-`DATABASE_URL`:
+4. **Build**: `npm run build` kører `prisma generate && node prisma/deploy.mjs && next build`.
+   - `prisma generate` kører også i `postinstall`.
+   - `prisma/deploy.mjs` kører **`prisma migrate deploy`** (mod den direkte forbindelse) og
+     seeder derefter **kun hvis databasen er tom** — så prototypens demodata kommer ind
+     én gang uden nogensinde at overskrive senere data.
+   - Mangler `DATABASE_URL` (fx et rent lokalt build), springes migrate + seed over, og
+     buildet lykkes stadig. Selve `next build` kræver ingen DB — alle sider er `force-dynamic`.
 
-   ```bash
-   DATABASE_URL="<prod-url>" npx prisma migrate deploy
-   DATABASE_URL="<prod-url>" npm run db:seed   # valgfrit — lægger demo-mockdata ind
-   ```
+   Migration (og første seed) sker altså **automatisk ved hvert Vercel-build** — ingen
+   manuelle skridt mod produktionsdatabasen.
 
-6. **Subdomæne**: peg `projekt.thirdbase.dk` mod Vercel-projektet under
+5. **Subdomæne**: peg `projekt.thirdbase.dk` mod Vercel-projektet under
    **Settings → Domains**. Appen kører på sit eget Vercel-projekt, egen database og egen
    frontend/backend — helt adskilt fra thirdbase.dk-hovedsitet.
 
