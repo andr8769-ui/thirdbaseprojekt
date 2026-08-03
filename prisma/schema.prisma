@@ -1,0 +1,138 @@
+// thirdbase Projektstyring — datamodel
+// Postgres via DATABASE_URL. Alle handlinger i appen persisteres her.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  image     String?
+  initials  String
+  color     String   @default("#3355FF")
+  role      String   @default("Medarbejder")
+  createdAt DateTime @default(now())
+
+  assignedTasks Task[]         @relation("TaskAssignees")
+  comments      Comment[]
+  mentionedIn   Comment[]      @relation("CommentMentions")
+  activities    Activity[]
+  notifications Notification[]
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  short     String
+  industry  String
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  boards Board[]
+}
+
+model Board {
+  id         String @id @default(cuid())
+  name       String
+  position   Int    @default(0)
+  customerId String
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  groups   Group[]
+}
+
+model Group {
+  id       String @id @default(cuid())
+  name     String
+  color    String
+  position Int    @default(0)
+  boardId  String
+
+  board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks Task[]
+}
+
+model Task {
+  id        String   @id @default(cuid())
+  name      String
+  status    String   @default("Ikke startet")
+  priority  String   @default("Medium")
+  startDate String? // 'YYYY-MM-DD'
+  endDate   String? // 'YYYY-MM-DD'
+  notes     String   @default("")
+  position  Int      @default(0)
+  groupId   String
+  createdAt DateTime @default(now())
+
+  group     Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignees User[]       @relation("TaskAssignees")
+  subtasks  Subtask[]
+  comments  Comment[]
+  activities Activity[]
+  files     Attachment[]
+}
+
+model Subtask {
+  id       String  @id @default(cuid())
+  name     String
+  done     Boolean @default(false)
+  position Int     @default(0)
+  taskId   String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  body        String
+  displayTime String? // menneskeligt tidsstempel fra seed ("i går kl. 14.22")
+  createdAt   DateTime @default(now())
+  taskId      String
+  authorId    String
+
+  task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  mentions User[] @relation("CommentMentions")
+}
+
+model Attachment {
+  id     String @id @default(cuid())
+  name   String
+  type   String
+  meta   String
+  taskId String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  text        String
+  color       String
+  displayTime String?
+  createdAt   DateTime @default(now())
+  taskId      String
+  actorId     String?
+
+  task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  text      String
+  time      String
+  color     String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------
+   thirdbase design-system tokens (fra Claude Design-eksporten).
+   Farver, spacing, radier og motion. Appen bruger Instrument Sans
+   (indlæst via next/font som --font-instrument-sans).
+   ------------------------------------------------------------------ */
+:root {
+  /* Brand palette */
+  --tb-red: #FF442B;
+  --tb-red-600: #E23417;
+  --tb-red-100: #FFE3DE;
+  --tb-blue: #3355FF;
+  --tb-blue-600: #2440E0;
+  --tb-blue-100: #E1E6FF;
+
+  --tb-ink: #181818;
+  --tb-ink-muted: #9E9E9E;
+  --tb-ink-strong: #1A1A1A;
+
+  /* App-flader */
+  --tb-bg: #F7F8F9;
+  --tb-surface: #FFFFFF;
+  --tb-sidebar: #181818;
+  --tb-line: #E6E8EC;
+  --tb-line-strong: #E1E4E9;
+
+  /* Status */
+  --st-ikke-startet: #C4C7CE;
+  --st-i-gang: #3355FF;
+  --st-afventer: #FFB020;
+  --st-review: #7B61FF;
+  --st-faerdig: #16A34A;
+
+  /* Spacing (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --shadow-sm: 0 1px 2px rgba(17, 17, 17, 0.05);
+  --shadow-md: 0 12px 32px rgba(24, 24, 24, 0.12);
+
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+
+  --font-sans: var(--font-instrument-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--tb-bg);
+  color: var(--tb-ink);
+}
+
+body,
+input,
+select,
+textarea,
+button {
+  font-family: var(--font-sans);
+}
+
+a {
+  color: var(--tb-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--tb-red);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid rgba(51, 85, 255, 0.35);
+  outline-offset: 0;
+}
+
+::selection {
+  background: var(--tb-red);
+  color: #fff;
+}
+
+/* Custom scrollbar — matcher prototypen */
+.tb-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.tb-scroll::-webkit-scrollbar-thumb {
+  background: #d8dbe0;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 99px;
+}
