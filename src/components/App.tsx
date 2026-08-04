@@ -15,6 +15,7 @@ import {
   statusOf,
   prioOf,
   erAdmin,
+  KUNDE_FARVER,
 } from "@/lib/constants";
 import {
   setStatus,
@@ -25,6 +26,7 @@ import {
   addComment,
   createCustomer,
   createBoard,
+  setCustomerColor,
   markNotificationsRead,
   deleteTask,
   deleteBoard,
@@ -84,6 +86,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
   const [kommentarUdkast, setKommentarUdkast] = useState("");
   const [modal, setModal] = useState<{ type: "kunde" } | { type: "board"; kundeId: string } | null>(null);
   const [modalVaerdi, setModalVaerdi] = useState("");
+  const [modalFarve, setModalFarve] = useState<string>(KUNDE_FARVER[0]);
   const [udfoldet, setUdfoldet] = useState<Record<string, boolean>>({});
   const [foldet, setFoldet] = useState<Record<string, boolean>>({});
 
@@ -147,6 +150,18 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
   function visToast(besked: string) {
     setToast(besked);
     window.setTimeout(() => setToast(null), 4500);
+  }
+
+  // Næste ledige palettefarve (ikke allerede brugt af en kunde).
+  function naesteFriFarve(): string {
+    const brugt = new Set(data.kunder.map((k) => k.farve));
+    return KUNDE_FARVER.find((c) => !brugt.has(c)) || KUNDE_FARVER[0];
+  }
+
+  function aabnNyKundeModal() {
+    setModal({ type: "kunde" });
+    setModalVaerdi("");
+    setModalFarve(naesteFriFarve());
   }
 
   // ================================================================
@@ -255,10 +270,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
               Kunder
             </span>
             <button
-              onClick={() => {
-                setModal({ type: "kunde" });
-                setModalVaerdi("");
-              }}
+              onClick={aabnNyKundeModal}
               title="Ny kunde"
               style={{
                 width: 20,
@@ -825,17 +837,34 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
 
     return (
       <div style={{ padding: "32px 28px 64px" }}>
-        {kanSlette(k.creatorId) && (
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 16, gap: 8 }}>
+          <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>Farve</span>
+          {KUNDE_FARVER.map((c) => (
+            <button
+              key={c}
+              onClick={() => act(() => setCustomerColor(k.id, c))}
+              title={c}
+              aria-label={"Vælg farve " + c}
+              style={{
+                width: 22,
+                height: 22,
+                background: c,
+                border: k.farve === c ? "2px solid #181818" : "2px solid transparent",
+                outline: "1px solid #E1E4E9",
+                cursor: "pointer",
+              }}
+            />
+          ))}
+          {kanSlette(k.creatorId) && (
             <button
               onClick={() => setSletMaal({ type: "kunde", id: k.id, navn: k.navn })}
               title="Slet kunde"
-              style={{ height: 34, border: "1px solid #E1E4E9", color: "#B4291A", background: "#fff", fontSize: 13, padding: "0 14px", cursor: "pointer" }}
+              style={{ marginLeft: "auto", height: 34, border: "1px solid #E1E4E9", color: "#B4291A", background: "#fff", fontSize: 13, padding: "0 14px", cursor: "pointer" }}
             >
               Slet kunde
             </button>
-          </div>
-        )}
+          )}
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {kpi.map((c) => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #E6E8EC", padding: 20 }}>
@@ -1758,6 +1787,29 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
             style={{ width: "100%", height: 44, border: "1px solid #DDE0E5", padding: "0 14px", fontSize: 15, marginTop: 20 }}
             autoFocus
           />
+          {erKunde && (
+            <div style={{ marginTop: 18 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 10 }}>Farve</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {KUNDE_FARVER.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setModalFarve(c)}
+                    title={c}
+                    aria-label={"Vælg farve " + c}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      background: c,
+                      border: modalFarve === c ? "2px solid #181818" : "2px solid transparent",
+                      outline: "1px solid #E1E4E9",
+                      cursor: "pointer",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
             <button
               onClick={() => {
@@ -1795,10 +1847,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
             <div style={{ fontSize: 18, fontWeight: 600 }}>Ingen kunder endnu</div>
             <div style={{ fontSize: 14, color: "#6E6E6E", marginTop: 8 }}>Opret din første kunde for at komme i gang.</div>
             <button
-              onClick={() => {
-                setModal({ type: "kunde" });
-                setModalVaerdi("");
-              }}
+              onClick={aabnNyKundeModal}
               style={{ marginTop: 20, height: 44, padding: "0 20px", border: 0, background: "#FF442B", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
             >
               Opret kunde
@@ -1935,7 +1984,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
     const m = modal;
     startTransition(async () => {
       if (m.type === "kunde") {
-        const res = await createCustomer(navn);
+        const res = await createCustomer(navn, modalFarve);
         router.refresh();
         if (res) {
           setAabneKunder((a) => ({ ...a, [res.kundeId]: true }));

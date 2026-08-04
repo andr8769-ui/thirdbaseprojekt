@@ -3,6 +3,14 @@ import authConfig from "./auth.config";
 import { prisma } from "@/lib/prisma";
 import { initialerAf, farveForNavn } from "@/lib/constants";
 
+// Mails der automatisk får rollen Admin (komma-separeret env, default andreas).
+function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS || "andreas@thirdbase.dk")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   session: { strategy: "jwt" },
@@ -23,17 +31,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Første gang en thirdbase-bruger logger ind, oprettes den automatisk.
       const navn = (profile?.name && String(profile.name).trim()) || email.split("@")[0];
       const billede = (profile as { picture?: string } | undefined)?.picture ?? null;
+      const erAdmin = adminEmails().includes(email);
 
       await prisma.user.upsert({
         where: { email },
-        update: { name: navn, image: billede ?? undefined },
+        update: {
+          name: navn,
+          image: billede ?? undefined,
+          // Promovér admin-mails; nedgrader aldrig andre roller.
+          ...(erAdmin ? { role: "Admin" } : {}),
+        },
         create: {
           email,
           name: navn,
           image: billede,
           initials: initialerAf(navn),
           color: farveForNavn(email),
-          role: "Medarbejder",
+          role: erAdmin ? "Admin" : "Medarbejder",
         },
       });
 

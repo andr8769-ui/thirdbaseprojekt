@@ -14,11 +14,27 @@ export async function logout() {
 async function actor() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Ikke logget ind");
+  // Læs rolle/navn fra DB, så fx en admin-promovering slår igennem med det samme
+  // (uden at brugeren skal logge ind igen).
+  const dbu = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { name: true, role: true },
+  });
   return {
     id: session.user.id,
-    navn: session.user.name || "En bruger",
-    role: session.user.role || "Medarbejder",
+    navn: dbu?.name || session.user.name || "En bruger",
+    role: dbu?.role || session.user.role || "Medarbejder",
   };
+}
+
+const HEX = /^#[0-9A-Fa-f]{6}$/;
+
+async function naesteLedigeFarve(): Promise<string> {
+  const brugte = new Set((await prisma.customer.findMany({ select: { color: true } })).map((c) => c.color));
+  const ledig = KUNDE_FARVER.find((c) => !brugte.has(c));
+  if (ledig) return ledig;
+  const antal = await prisma.customer.count();
+  return KUNDE_FARVER[antal % KUNDE_FARVER.length];
 }
 
 function plusDage(dato: string, n: number): string {
@@ -228,17 +244,18 @@ export async function addComment(taskId: string, body: string) {
 }
 
 /** Opret ny kunde med standard-board og tre grupper. */
-export async function createCustomer(navn: string) {
+export async function createCustomer(navn: string, farve?: string) {
   const me = await actor();
   const rent = navn.trim();
   if (!rent) return null;
   const antal = await prisma.customer.count();
+  const color = farve && HEX.test(farve) ? farve : await naesteLedigeFarve();
   const customer = await prisma.customer.create({
     data: {
       name: rent,
       short: rent.slice(0, 2).toUpperCase(),
       industry: "Ny kunde",
-      color: KUNDE_FARVER[antal % KUNDE_FARVER.length],
+      color,
       position: antal,
       creatorId: me.id,
       boards: {
@@ -285,6 +302,14 @@ export async function createBoard(customerId: string, navn: string) {
   });
   revalidatePath("/");
   return { kundeId: customerId, boardId: board.id };
+}
+
+/** Vælg/ændr en kundes farve. */
+export async function setCustomerColor(customerId: string, farve: string) {
+  await actor();
+  if (!HEX.test(farve)) return;
+  await prisma.customer.update({ where: { id: customerId }, data: { color: farve } });
+  revalidatePath("/");
 }
 
 /** Markér den aktuelle brugers notifikationer som læst. */

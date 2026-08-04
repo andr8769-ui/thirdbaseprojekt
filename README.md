@@ -29,9 +29,12 @@ persisteres i databasen via **server actions** — intet gemmes i `localStorage`
   (1 kolonne mobil, 2 tablet, 3-4 desktop). Hver kunde har sin egen farve, og kortet viser antal
   projekter, opgaver, færdige, completion-% med progress-bar, overskredne deadlines og de næste
   deadlines. Al aggregering sker server-side i Prisma. Tomt: 'Ingen kunder endnu' med opret-knap.
-- **Slet** kunde, board/projekt eller enkelt opgave med bekræftelsesdialog. Kun **admin** (rolle
-  `Admin`) eller **ejer/creator** må slette; relaterede grupper, opgaver, kommentarer og
-  notifikationer fjernes via cascade.
+  Hver kunde har sin egen **distinkte** farve (deterministisk fra paletten); farven kan vælges i
+  opret-kunde-modalen og ændres på kundens dashboard. Nye kunder får næste ledige palettefarve.
+- **Slet** kunde, board/projekt eller enkelt opgave med bekræftelsesdialog. Kun **admin** eller
+  **ejer/creator** må slette; relaterede grupper, opgaver, kommentarer og notifikationer fjernes via
+  cascade. Admin-rollen styres af `ADMIN_EMAILS` (default `andreas@thirdbase.dk`) og sættes både ved
+  login og som backfill ved hvert build.
 - **E-mail-notifikationer** — bliver du nævnt, får en kommentar på din opgave, eller markeres en af
   dine opgaver færdig, får du både en in-app notifikation og en e-mail (kan slås fra under
   **/indstillinger**). Du får aldrig mail om dine egne handlinger.
@@ -89,6 +92,7 @@ npm run dev
 | `GOOGLE_CLIENT_SECRET` | OAuth Client Secret |
 | `AUTH_SECRET` | Hemmelighed til NextAuth (`npx auth secret` eller `openssl rand -base64 32`) |
 | `AUTH_URL` | Appens canoniske URL (lokalt `http://localhost:3000`) |
+| `ADMIN_EMAILS` | *(valgfrit)* Komma-separeret liste af mails der får rollen `Admin` (må slette alt). Default: `andreas@thirdbase.dk` |
 | `DATABASE_URL` | **Pooled** Postgres-forbindelse — bruges af appen i runtime |
 | `DATABASE_URL_UNPOOLED` | **Direct** Postgres-forbindelse — bruges af Prisma til migrationer (`directUrl`). Neon leverer begge; lokalt kan den være = `DATABASE_URL` |
 | `RESEND_API_KEY` | *(valgfrit)* API-nøgle til Resend — foretrukket e-mail-backend |
@@ -137,6 +141,7 @@ Tips:
    | `GOOGLE_CLIENT_SECRET` | fra Google Cloud Console |
    | `AUTH_SECRET` | genereret hemmelighed |
    | `AUTH_URL` | `https://projekt.thirdbase.dk` (jeres produktions-URL) |
+   | `ADMIN_EMAILS` *(valgfrit)* | mails der får rollen Admin (default `andreas@thirdbase.dk`) |
    | `DATABASE_URL` | pooled Postgres connection string |
    | `DATABASE_URL_UNPOOLED` | direct Postgres connection string (til migrationer) |
    | `RESEND_API_KEY` *(valgfrit)* | e-mail-backend (Resend) |
