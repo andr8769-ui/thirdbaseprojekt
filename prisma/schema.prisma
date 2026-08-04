@@ -13,20 +13,24 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  image     String?
-  initials  String
-  color     String   @default("#3355FF")
-  role      String   @default("Medarbejder")
-  createdAt DateTime @default(now())
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  image              String?
+  initials           String
+  color              String   @default("#3355FF")
+  role               String   @default("Medarbejder")
+  emailNotifications Boolean  @default(true)
+  createdAt          DateTime @default(now())
 
-  assignedTasks Task[]         @relation("TaskAssignees")
-  comments      Comment[]
-  mentionedIn   Comment[]      @relation("CommentMentions")
-  activities    Activity[]
-  notifications Notification[]
+  assignedTasks    Task[]         @relation("TaskAssignees")
+  comments         Comment[]
+  mentionedIn      Comment[]      @relation("CommentMentions")
+  activities       Activity[]
+  notifications    Notification[]
+  createdCustomers Customer[]     @relation("CustomerCreator")
+  createdBoards    Board[]        @relation("BoardCreator")
+  createdTasks     Task[]         @relation("TaskCreator")
 }
 
 model Customer {
@@ -34,10 +38,13 @@ model Customer {
   name      String
   short     String
   industry  String
+  color     String   @default("#3355FF")
   position  Int      @default(0)
+  creatorId String?
   createdAt DateTime @default(now())
 
-  boards Board[]
+  creator User?   @relation("CustomerCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  boards  Board[]
 }
 
 model Board {
@@ -45,8 +52,10 @@ model Board {
   name       String
   position   Int    @default(0)
   customerId String
+  creatorId  String?
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  creator  User?    @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: SetNull)
   groups   Group[]
 }
 
@@ -71,14 +80,17 @@ model Task {
   notes     String   @default("")
   position  Int      @default(0)
   groupId   String
+  creatorId String?
   createdAt DateTime @default(now())
 
-  group     Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  assignees User[]       @relation("TaskAssignees")
-  subtasks  Subtask[]
-  comments  Comment[]
-  activities Activity[]
-  files     Attachment[]
+  group         Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator       User?          @relation("TaskCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  assignees     User[]         @relation("TaskAssignees")
+  subtasks      Subtask[]
+  comments      Comment[]
+  activities    Activity[]
+  files         Attachment[]
+  notifications Notification[]
 }
 
 model Subtask {
@@ -135,6 +147,8 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   userId    String
+  taskId    String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO } from "@/lib/types";
+import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO, DashboardKortDTO } from "@/lib/types";
 import {
   STATUS,
   PRIO,
@@ -14,6 +14,7 @@ import {
   deadlineFarve,
   statusOf,
   prioOf,
+  erAdmin,
 } from "@/lib/constants";
 import {
   setStatus,
@@ -25,27 +26,51 @@ import {
   createCustomer,
   createBoard,
   markNotificationsRead,
+  deleteTask,
+  deleteBoard,
+  deleteCustomer,
   logout,
 } from "@/app/actions";
 
 type Nav =
+  | { type: "forside" }
   | { type: "mit" }
   | { type: "overblik" }
   | { type: "dashboard"; kundeId: string }
   | { type: "board"; kundeId: string; boardId: string };
 
+type SletMaal =
+  | { type: "opgave"; id: string; navn: string }
+  | { type: "board"; id: string; navn: string; kundeId: string }
+  | { type: "kunde"; id: string; navn: string };
+
 type Flat = { o: OpgaveDTO; g: GruppeDTO; b: BoardDTO; k: KundeDTO };
 
-export default function App({ data }: { data: AppData }) {
+export default function App({ data, initialTaskId }: { data: AppData; initialTaskId?: string | null }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
 
-  const [nav, setNav] = useState<Nav>({ type: "mit" });
+  // Deep-link fra e-mail: åbn direkte på en opgave.
+  const deepLink = (() => {
+    if (!initialTaskId) return null;
+    for (const k of data.kunder)
+      for (const b of k.boards)
+        for (const g of b.grupper)
+          for (const o of g.opgaver)
+            if (o.id === initialTaskId) return { kundeId: k.id, boardId: b.id, taskId: o.id };
+    return null;
+  })();
+
+  const [nav, setNav] = useState<Nav>(
+    deepLink ? { type: "board", kundeId: deepLink.kundeId, boardId: deepLink.boardId } : { type: "forside" },
+  );
   const [visning, setVisning] = useState<"tabel" | "kanban" | "gantt">("tabel");
   const [aabneKunder, setAabneKunder] = useState<Record<string, boolean>>(
-    data.kunder[0] ? { [data.kunder[0].id]: true } : {},
+    deepLink ? { [deepLink.kundeId]: true } : data.kunder[0] ? { [data.kunder[0].id]: true } : {},
   );
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const [panelId, setPanelId] = useState<string | null>(deepLink ? deepLink.taskId : null);
+  const [sletMaal, setSletMaal] = useState<SletMaal | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [statusMenu, setStatusMenu] = useState<string | null>(null);
   const [prioMenu, setPrioMenu] = useState<string | null>(null);
   const [visNoti, setVisNoti] = useState(false);
@@ -91,6 +116,39 @@ export default function App({ data }: { data: AppData }) {
       router.refresh();
     });
 
+  // Slet-rettighed: admin må alt, ellers kun ejer/creator.
+  const kanSlette = (creatorId: string | null | undefined) =>
+    erAdmin(mig.rolle) || (!!creatorId && creatorId === mig.id);
+
+  function udfoerSlet() {
+    if (!sletMaal) return;
+    const maal = sletMaal;
+    startTransition(async () => {
+      const res =
+        maal.type === "opgave"
+          ? await deleteTask(maal.id)
+          : maal.type === "board"
+            ? await deleteBoard(maal.id)
+            : await deleteCustomer(maal.id);
+      router.refresh();
+      setSletMaal(null);
+      if (res.ok) {
+        if (maal.type === "opgave" && panelId === maal.id) setPanelId(null);
+        if (maal.type === "board" && nav.type === "board" && nav.boardId === maal.id)
+          setNav({ type: "dashboard", kundeId: maal.kundeId });
+        if (maal.type === "kunde" && "kundeId" in nav && nav.kundeId === maal.id) setNav({ type: "forside" });
+        visToast('"' + maal.navn + '" blev slettet.');
+      } else {
+        visToast(res.reason || "Kunne ikke slette.");
+      }
+    });
+  }
+
+  function visToast(besked: string) {
+    setToast(besked);
+    window.setTimeout(() => setToast(null), 4500);
+  }
+
   // ================================================================
   // LOGIN håndteres af /login. Her renderes altid appen.
   // ================================================================
@@ -98,23 +156,27 @@ export default function App({ data }: { data: AppData }) {
   const aktivBoard = nav.type === "board" ? board(nav.kundeId, nav.boardId) : null;
 
   const topEyebrow =
-    nav.type === "mit"
-      ? "Personlig oversigt"
-      : nav.type === "overblik"
-        ? "thirdbase"
-        : aktivKunde
-          ? aktivKunde.branche
-          : "";
-  const topTitel =
-    nav.type === "mit"
-      ? "Mit arbejde"
-      : nav.type === "overblik"
-        ? "Alle kunder"
-        : nav.type === "dashboard"
-          ? (aktivKunde?.navn ?? "") + " · Dashboard"
-          : aktivKunde && aktivBoard
-            ? aktivKunde.navn + " · " + aktivBoard.navn
+    nav.type === "forside"
+      ? "thirdbase"
+      : nav.type === "mit"
+        ? "Personlig oversigt"
+        : nav.type === "overblik"
+          ? "thirdbase"
+          : aktivKunde
+            ? aktivKunde.branche
             : "";
+  const topTitel =
+    nav.type === "forside"
+      ? "Dashboard"
+      : nav.type === "mit"
+        ? "Mit arbejde"
+        : nav.type === "overblik"
+          ? "Alle kunder"
+          : nav.type === "dashboard"
+            ? (aktivKunde?.navn ?? "") + " · Dashboard"
+            : aktivKunde && aktivBoard
+              ? aktivKunde.navn + " · " + aktivBoard.navn
+              : "";
 
   const q = soeg.trim().toLowerCase();
   const traef =
@@ -159,6 +221,15 @@ export default function App({ data }: { data: AppData }) {
           </div>
 
           <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+            <button
+              onClick={() => {
+                setNav({ type: "forside" });
+                setPanelId(null);
+              }}
+              style={sx(navStil(nav.type === "forside"))}
+            >
+              Forside
+            </button>
             <button
               onClick={() => {
                 setNav({ type: "mit" });
@@ -335,6 +406,13 @@ export default function App({ data }: { data: AppData }) {
                 {mig.rolle}
               </div>
             </div>
+            <a
+              href="/indstillinger"
+              title="Indstillinger"
+              style={{ color: "#7A7A7A", fontSize: 14, lineHeight: 1, textDecoration: "none" }}
+            >
+              ⚙
+            </a>
             <button
               onClick={() => act(() => logout())}
               title="Log ud"
@@ -516,6 +594,7 @@ export default function App({ data }: { data: AppData }) {
 
           {/* Indhold */}
           <div className="tb-scroll" style={{ flex: 1, overflow: "auto", position: "relative" }}>
+            {nav.type === "forside" && renderForside()}
             {nav.type === "mit" && renderMitArbejde()}
             {nav.type === "overblik" && renderOverblik()}
             {nav.type === "dashboard" && aktivKunde && renderDashboard(aktivKunde)}
@@ -526,6 +605,25 @@ export default function App({ data }: { data: AppData }) {
 
       {panelId && renderPanel()}
       {modal && renderModal()}
+      {sletMaal && renderSletDialog()}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 90,
+            background: "#181818",
+            color: "#fff",
+            fontSize: 14,
+            padding: "12px 20px",
+            boxShadow: "0 12px 32px rgba(24,24,24,.28)",
+          }}
+        >
+          {toast}
+        </div>
+      )}
     </div>
   );
 
@@ -727,6 +825,17 @@ export default function App({ data }: { data: AppData }) {
 
     return (
       <div style={{ padding: "32px 28px 64px" }}>
+        {kanSlette(k.creatorId) && (
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+            <button
+              onClick={() => setSletMaal({ type: "kunde", id: k.id, navn: k.navn })}
+              title="Slet kunde"
+              style={{ height: 34, border: "1px solid #E1E4E9", color: "#B4291A", background: "#fff", fontSize: 13, padding: "0 14px", cursor: "pointer" }}
+            >
+              Slet kunde
+            </button>
+          </div>
+        )}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {kpi.map((c) => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #E6E8EC", padding: 20 }}>
@@ -924,6 +1033,15 @@ export default function App({ data }: { data: AppData }) {
                 style={{ height: 32, border: "1px solid #FF442B", color: "#FF442B", background: "#fff", fontSize: 13, padding: "0 10px", cursor: "pointer" }}
               >
                 Ryd
+              </button>
+            )}
+            {kanSlette(b.creatorId) && (
+              <button
+                onClick={() => setSletMaal({ type: "board", id: b.id, navn: b.navn, kundeId: aktivKunde?.id || "" })}
+                title="Slet board"
+                style={{ height: 32, border: "1px solid #E1E4E9", color: "#B4291A", background: "#fff", fontSize: 13, padding: "0 12px", cursor: "pointer" }}
+              >
+                Slet board
               </button>
             )}
           </div>
@@ -1417,6 +1535,15 @@ export default function App({ data }: { data: AppData }) {
                   {o.navn}
                 </div>
               </div>
+              {kanSlette(o.creatorId) && (
+                <button
+                  onClick={() => setSletMaal({ type: "opgave", id: o.id, navn: o.navn })}
+                  title="Slet opgave"
+                  style={{ height: 30, border: "1px solid #E1E4E9", background: "#fff", cursor: "pointer", fontSize: 12, color: "#B4291A", flex: "none", padding: "0 10px" }}
+                >
+                  Slet
+                </button>
+              )}
               <button
                 onClick={() => setPanelId(null)}
                 style={{ width: 30, height: 30, border: "1px solid #E1E4E9", background: "#fff", cursor: "pointer", fontSize: 14, color: "#6E6E6E", flex: "none" }}
@@ -1646,6 +1773,154 @@ export default function App({ data }: { data: AppData }) {
               style={{ height: 40, padding: "0 20px", border: 0, background: "#FF442B", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
             >
               Opret
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ================================================================
+  // FORSIDE — dashboard med ét kort pr. virksomhed (aggregeret server-side)
+  // ================================================================
+  function renderForside() {
+    const kort = data.dashboard;
+    return (
+      <div style={{ padding: "32px 28px 64px" }}>
+        <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
+        <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
+
+        {kort.length === 0 ? (
+          <div style={{ marginTop: 40, background: "#fff", border: "1px solid #E6E8EC", padding: "56px 32px", textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 600 }}>Ingen kunder endnu</div>
+            <div style={{ fontSize: 14, color: "#6E6E6E", marginTop: 8 }}>Opret din første kunde for at komme i gang.</div>
+            <button
+              onClick={() => {
+                setModal({ type: "kunde" });
+                setModalVaerdi("");
+              }}
+              style={{ marginTop: 20, height: 44, padding: "0 20px", border: 0, background: "#FF442B", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            >
+              Opret kunde
+            </button>
+          </div>
+        ) : (
+          <div className="tb-kort-grid" style={{ marginTop: 28 }}>
+            {kort.map((k) => renderKundeKort(k))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderKundeKort(k: DashboardKortDTO) {
+    const aabne = k.opgaver - k.faerdige;
+    const goTo = () => {
+      setPanelId(null);
+      if (k.foersteBoardId) {
+        setAabneKunder((a) => ({ ...a, [k.id]: true }));
+        setNav({ type: "board", kundeId: k.id, boardId: k.foersteBoardId });
+        setVisning("tabel");
+      } else {
+        setNav({ type: "dashboard", kundeId: k.id });
+      }
+    };
+    return (
+      <div
+        key={k.id}
+        onClick={goTo}
+        style={{ background: "#fff", border: "1px solid #E6E8EC", borderTop: "3px solid " + k.farve, padding: 20, cursor: "pointer", display: "flex", flexDirection: "column" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flex: "none", background: k.farve }}>
+            {k.kort}
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 16, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{k.navn}</div>
+            <div style={{ fontSize: 12, color: "#9E9E9E", marginTop: 2 }}>
+              {k.boards} {k.boards === 1 ? "projekt" : "projekter"} · {k.opgaver} opgaver
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#6E6E6E", marginBottom: 6 }}>
+            <span>{k.faerdige}/{k.opgaver} færdige</span>
+            <span style={{ fontWeight: 600, color: "#181818" }}>{k.procent}%</span>
+          </div>
+          <div style={{ height: 8, background: "#F0F1F4" }}>
+            <div style={{ height: 8, width: k.procent + "%", background: k.farve }} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <div style={{ flex: 1, background: "#F7F8F9", padding: "10px 12px" }}>
+            <div style={{ fontSize: 20, fontWeight: 600 }}>{aabne}</div>
+            <div style={{ fontSize: 11, color: "#9E9E9E" }}>Åbne</div>
+          </div>
+          <div style={{ flex: 1, background: "#F7F8F9", padding: "10px 12px" }}>
+            <div style={{ fontSize: 20, fontWeight: 600, color: k.overskredne > 0 ? "#FF442B" : "#181818" }}>{k.overskredne}</div>
+            <div style={{ fontSize: 11, color: "#9E9E9E" }}>Overskredne</div>
+          </div>
+        </div>
+
+        {k.naeste.length > 0 && (
+          <div style={{ marginTop: 16, borderTop: "1px solid #F0F1F4", paddingTop: 14 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 10 }}>Næste deadlines</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {k.naeste.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAabneKunder((a) => ({ ...a, [k.id]: true }));
+                    setNav({ type: "board", kundeId: k.id, boardId: n.boardId });
+                    setPanelId(n.id);
+                  }}
+                  style={{ display: "flex", gap: 10, alignItems: "baseline", cursor: "pointer" }}
+                >
+                  <span style={{ width: 44, flex: "none", fontSize: 12, fontWeight: 600, color: deadlineFarve("", n.slut) }}>{dtoTekst(n.slut)}</span>
+                  <span style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.navn}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ================================================================
+  // SLET-BEKRÆFTELSE
+  // ================================================================
+  function renderSletDialog() {
+    if (!sletMaal) return null;
+    const typeNavn = sletMaal.type === "opgave" ? "opgave" : sletMaal.type === "board" ? "board" : "kunde";
+    const advarsel =
+      sletMaal.type === "kunde"
+        ? "Alle boards, opgaver, kommentarer og notifikationer under kunden slettes permanent."
+        : sletMaal.type === "board"
+          ? "Alle grupper, opgaver og kommentarer under boardet slettes permanent."
+          : "Opgaven med underopgaver og kommentarer slettes permanent.";
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(24,24,24,.32)" }}>
+        <div style={{ width: 440, background: "#fff", border: "1px solid #E6E8EC", padding: 28 }}>
+          <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Slet {typeNavn}?</div>
+          <div style={{ fontSize: 14, color: "#4A4A4A", marginTop: 12, lineHeight: 1.55 }}>
+            Du er ved at slette <strong>{sletMaal.navn}</strong>. {advarsel} Handlingen kan ikke fortrydes.
+          </div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
+            <button
+              onClick={() => setSletMaal(null)}
+              style={{ height: 40, padding: "0 16px", border: "1px solid #E1E4E9", background: "#fff", fontSize: 14, cursor: "pointer" }}
+            >
+              Annullér
+            </button>
+            <button
+              onClick={udfoerSlet}
+              style={{ height: 40, padding: "0 20px", border: 0, background: "#FF442B", color: "#fff", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+            >
+              Slet {typeNavn}
             </button>
           </div>
         </div>

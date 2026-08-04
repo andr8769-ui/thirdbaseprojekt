@@ -158,6 +158,9 @@ const FILER = [
   [{ navn: "rapport-juli.pdf", type: "PDF", meta: "Mette Kragh · 2,1 MB" }],
 ];
 
+// Pæne default-farver pr. virksomhed (styrer dashboard-kortenes accent).
+const KUNDE_FARVER = ["#FF442B", "#3355FF", "#7B61FF"];
+
 const NOTIFIKATIONER = [
   { text: 'Sofie Lind nævnte dig i "Kalender for august godkendes af kunden"', time: "for 12 minutter siden", color: "#FF442B" },
   { text: 'Du blev tildelt "Outbound-sekvens til indkøbschefer" hos Bregnholt Industri', time: "for 1 time siden", color: "#3355FF" },
@@ -199,19 +202,27 @@ async function main() {
   }
 
   const base = new Date("2026-08-01T09:00:00Z").getTime();
+  const ejerId = userIdByName.get("Mette Kragh") || null;
   let tid = 0;
 
   console.log("Opretter kunder, boards, grupper og opgaver …");
   for (let ki = 0; ki < KUNDER.length; ki++) {
     const k = KUNDER[ki];
     const customer = await prisma.customer.create({
-      data: { name: k.navn, short: k.kort, industry: k.branche, position: ki },
+      data: {
+        name: k.navn,
+        short: k.kort,
+        industry: k.branche,
+        color: KUNDE_FARVER[ki % KUNDE_FARVER.length],
+        position: ki,
+        creatorId: ejerId,
+      },
     });
 
     for (let bi = 0; bi < k.boards.length; bi++) {
       const b = k.boards[bi];
       const board = await prisma.board.create({
-        data: { name: b.navn, position: bi, customerId: customer.id },
+        data: { name: b.navn, position: bi, customerId: customer.id, creatorId: ejerId },
       });
 
       for (let gi = 0; gi < b.grupper.length; gi++) {
@@ -238,6 +249,7 @@ async function main() {
               notes: o.noter,
               position: oi,
               groupId: group.id,
+              creatorId: ejerId,
               assignees: { connect: assigneeIds.map((id) => ({ id })) },
               subtasks: {
                 create: o.subs.map((s, si) => ({ name: s, done: si === 0 && o.s > 1, position: si })),

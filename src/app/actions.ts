@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { statusOf, prioOf, IDAG } from "@/lib/constants";
+import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin } from "@/lib/constants";
+import { createNotification } from "@/lib/notifications";
 
 /** Log ud. */
 export async function logout() {
@@ -13,7 +14,11 @@ export async function logout() {
 async function actor() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Ikke logget ind");
-  return { id: session.user.id, navn: session.user.name || "En bruger" };
+  return {
+    id: session.user.id,
+    navn: session.user.name || "En bruger",
+    role: session.user.role || "Medarbejder",
+  };
 }
 
 function plusDage(dato: string, n: number): string {
@@ -28,11 +33,24 @@ function mentionNavne(tekst: string): string[] {
   return ud;
 }
 
+// Slå kundenavn + ansvarlige op til brug i notifikationer.
+async function taskKontekst(taskId: string) {
+  return prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      id: true,
+      name: true,
+      assignees: { select: { id: true } },
+      group: { select: { board: { select: { customer: { select: { name: true } } } } } },
+    },
+  });
+}
+
 /** Ét-klik statusskifte (tabel, kanban-drop, panel). */
 export async function setStatus(taskId: string, status: string) {
   const me = await actor();
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } });
-  if (!task) return;
+  const ctx = await taskKontekst(taskId);
+  if (!ctx) return;
   await prisma.task.update({ where: { id: taskId }, data: { status } });
   await prisma.activity.create({
     data: {
@@ -43,6 +61,26 @@ export async function setStatus(taskId: string, status: string) {
       displayTime: "lige nu",
     },
   });
+
+  // Notifikation når en opgave markeres færdig.
+  if (status === "Færdig") {
+    const kunde = ctx.group?.board?.customer?.name ?? null;
+    await Promise.all(
+      ctx.assignees
+        .filter((a) => a.id !== me.id)
+        .map((a) =>
+          createNotification({
+            recipientId: a.id,
+            actor: me,
+            text: me.navn + ' markerede "' + ctx.name + '" som færdig',
+            color: "#16A34A",
+            taskId,
+            taskName: ctx.name,
+            customerName: kunde,
+          }),
+        ),
+    );
+  }
   revalidatePath("/");
 }
 
@@ -106,6 +144,7 @@ export async function addTask(groupId: string, navn: string) {
       notes: "",
       position: antal,
       groupId,
+      creatorId: me.id,
       assignees: { connect: { id: me.id } },
     },
   });
@@ -124,14 +163,15 @@ export async function toggleSubtask(subtaskId: string) {
   revalidatePath("/");
 }
 
-/** Skriv kommentar (med @mentions → notifikationer). */
+/** Skriv kommentar (med @mentions → notifikationer + e-mail). */
 export async function addComment(taskId: string, body: string) {
   const me = await actor();
   const tekst = body.trim();
   if (!tekst) return;
 
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true, name: true } });
-  if (!task) return;
+  const ctx = await taskKontekst(taskId);
+  if (!ctx) return;
+  const kunde = ctx.group?.board?.customer?.name ?? null;
 
   const navne = mentionNavne(tekst);
   const naevnte = navne.length
@@ -151,24 +191,45 @@ export async function addComment(taskId: string, body: string) {
     data: { taskId, actorId: me.id, text: me.navn + " skrev en kommentar", color: "#3355FF", displayTime: "lige nu" },
   });
 
-  // Notifikér nævnte kolleger (ikke én selv).
-  for (const u of naevnte) {
-    if (u.id === me.id) continue;
-    await prisma.notification.create({
-      data: {
-        userId: u.id,
-        text: me.navn + ' nævnte dig i "' + task.name + '"',
-        time: "for et øjeblik siden",
+  const naevntIds = new Set(naevnte.map((u) => u.id));
+
+  // @mention-notifikationer.
+  const mentionNotis = naevnte
+    .filter((u) => u.id !== me.id)
+    .map((u) =>
+      createNotification({
+        recipientId: u.id,
+        actor: me,
+        text: me.navn + ' nævnte dig i "' + ctx.name + '"',
         color: "#FF442B",
-      },
-    });
-  }
+        taskId,
+        taskName: ctx.name,
+        customerName: kunde,
+      }),
+    );
+
+  // Ny-kommentar-notifikationer til øvrige ansvarlige (som ikke er nævnt/afsender).
+  const kommentarNotis = ctx.assignees
+    .filter((a) => a.id !== me.id && !naevntIds.has(a.id))
+    .map((a) =>
+      createNotification({
+        recipientId: a.id,
+        actor: me,
+        text: me.navn + ' skrev en kommentar på "' + ctx.name + '"',
+        color: "#3355FF",
+        taskId,
+        taskName: ctx.name,
+        customerName: kunde,
+      }),
+    );
+
+  await Promise.all([...mentionNotis, ...kommentarNotis]);
   revalidatePath("/");
 }
 
 /** Opret ny kunde med standard-board og tre grupper. */
 export async function createCustomer(navn: string) {
-  await actor();
+  const me = await actor();
   const rent = navn.trim();
   if (!rent) return null;
   const antal = await prisma.customer.count();
@@ -177,11 +238,14 @@ export async function createCustomer(navn: string) {
       name: rent,
       short: rent.slice(0, 2).toUpperCase(),
       industry: "Ny kunde",
+      color: KUNDE_FARVER[antal % KUNDE_FARVER.length],
       position: antal,
+      creatorId: me.id,
       boards: {
         create: {
           name: "Onboarding",
           position: 0,
+          creatorId: me.id,
           groups: {
             create: [
               { name: "Denne uge", color: "#FF442B", position: 0 },
@@ -200,7 +264,7 @@ export async function createCustomer(navn: string) {
 
 /** Opret nyt board på en kunde med tre grupper. */
 export async function createBoard(customerId: string, navn: string) {
-  await actor();
+  const me = await actor();
   const rent = navn.trim();
   if (!rent) return null;
   const antal = await prisma.board.count({ where: { customerId } });
@@ -209,6 +273,7 @@ export async function createBoard(customerId: string, navn: string) {
       name: rent,
       position: antal,
       customerId,
+      creatorId: me.id,
       groups: {
         create: [
           { name: "Denne uge", color: "#FF442B", position: 0 },
@@ -226,5 +291,55 @@ export async function createBoard(customerId: string, navn: string) {
 export async function markNotificationsRead() {
   const me = await actor();
   await prisma.notification.updateMany({ where: { userId: me.id, read: false }, data: { read: true } });
+  revalidatePath("/");
+}
+
+// ================================================================
+// SLET — kun ADMIN eller ejer/creator. Cascade rydder afhængige rækker.
+// ================================================================
+type SletResultat = { ok: boolean; reason?: string };
+
+function maaSlette(creatorId: string | null | undefined, me: { id: string; role: string }): boolean {
+  return erAdmin(me.role) || (!!creatorId && creatorId === me.id);
+}
+
+/** Slet en enkelt opgave (med underopgaver, kommentarer, notifikationer via cascade). */
+export async function deleteTask(taskId: string): Promise<SletResultat> {
+  const me = await actor();
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true, creatorId: true } });
+  if (!task) return { ok: false, reason: "Opgaven findes ikke." };
+  if (!maaSlette(task.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette denne opgave." };
+  await prisma.task.delete({ where: { id: taskId } });
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Slet et board/projekt (med grupper, opgaver, kommentarer, notifikationer via cascade). */
+export async function deleteBoard(boardId: string): Promise<SletResultat> {
+  const me = await actor();
+  const board = await prisma.board.findUnique({ where: { id: boardId }, select: { id: true, creatorId: true } });
+  if (!board) return { ok: false, reason: "Boardet findes ikke." };
+  if (!maaSlette(board.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette dette board." };
+  await prisma.board.delete({ where: { id: boardId } });
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Slet en kunde (med boards, grupper, opgaver, kommentarer, notifikationer via cascade). */
+export async function deleteCustomer(customerId: string): Promise<SletResultat> {
+  const me = await actor();
+  const kunde = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, creatorId: true } });
+  if (!kunde) return { ok: false, reason: "Kunden findes ikke." };
+  if (!maaSlette(kunde.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette denne kunde." };
+  await prisma.customer.delete({ where: { id: customerId } });
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Slå e-mail-notifikationer til/fra for den aktuelle bruger. */
+export async function setEmailNotifications(enabled: boolean) {
+  const me = await actor();
+  await prisma.user.update({ where: { id: me.id }, data: { emailNotifications: enabled } });
+  revalidatePath("/indstillinger");
   revalidatePath("/");
 }

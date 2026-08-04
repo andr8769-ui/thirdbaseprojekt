@@ -25,6 +25,16 @@ persisteres i databasen via **server actions** — intet gemmes i `localStorage`
 
 ## Funktioner
 
+- **Forside (dashboard)** — landingssiden efter login: ét kort pr. virksomhed i et responsivt grid
+  (1 kolonne mobil, 2 tablet, 3-4 desktop). Hver kunde har sin egen farve, og kortet viser antal
+  projekter, opgaver, færdige, completion-% med progress-bar, overskredne deadlines og de næste
+  deadlines. Al aggregering sker server-side i Prisma. Tomt: 'Ingen kunder endnu' med opret-knap.
+- **Slet** kunde, board/projekt eller enkelt opgave med bekræftelsesdialog. Kun **admin** (rolle
+  `Admin`) eller **ejer/creator** må slette; relaterede grupper, opgaver, kommentarer og
+  notifikationer fjernes via cascade.
+- **E-mail-notifikationer** — bliver du nævnt, får en kommentar på din opgave, eller markeres en af
+  dine opgaver færdig, får du både en in-app notifikation og en e-mail (kan slås fra under
+  **/indstillinger**). Du får aldrig mail om dine egne handlinger.
 - **Mit arbejde** — dine åbne opgaver grupperet i Forsinket / I dag / Denne uge / Senere.
 - **Overblik · alle kunder** — KPI’er, arbejdsbelastning pr. teammedlem, åbne opgaver pr. kunde.
 - **Kunde-dashboards** — statusfordeling (donut), opgaver pr. teammedlem (søjler), kommende deadlines.
@@ -81,6 +91,9 @@ npm run dev
 | `AUTH_URL` | Appens canoniske URL (lokalt `http://localhost:3000`) |
 | `DATABASE_URL` | **Pooled** Postgres-forbindelse — bruges af appen i runtime |
 | `DATABASE_URL_UNPOOLED` | **Direct** Postgres-forbindelse — bruges af Prisma til migrationer (`directUrl`). Neon leverer begge; lokalt kan den være = `DATABASE_URL` |
+| `RESEND_API_KEY` | *(valgfrit)* API-nøgle til Resend — foretrukket e-mail-backend |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | *(valgfrit)* SMTP-backend hvis Resend ikke bruges. Google Workspace: `smtp.gmail.com`, port `465`, mail + app-password |
+| `EMAIL_FROM` | *(valgfrit)* Afsender. Default: `thirdbase Projektstyring <noreply@thirdbase.dk>` |
 
 Ingen hemmeligheder ligger i repoet — `.env` er git-ignoreret. Se `.env.example`.
 
@@ -126,6 +139,9 @@ Tips:
    | `AUTH_URL` | `https://projekt.thirdbase.dk` (jeres produktions-URL) |
    | `DATABASE_URL` | pooled Postgres connection string |
    | `DATABASE_URL_UNPOOLED` | direct Postgres connection string (til migrationer) |
+   | `RESEND_API_KEY` *(valgfrit)* | e-mail-backend (Resend) |
+   | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` *(valgfrit)* | e-mail-backend (SMTP) |
+   | `EMAIL_FROM` *(valgfrit)* | afsender på notifikations-mails |
 
 4. **Build**: `npm run build` kører `prisma generate && node prisma/deploy.mjs && next build`.
    - `prisma generate` kører også i `postinstall`.

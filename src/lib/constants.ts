@@ -33,6 +33,14 @@ export const MDR = [
 // Farvepalet til nye brugere (auto-oprettet ved første login).
 export const BRUGER_FARVER = ["#FF442B", "#3355FF", "#181818", "#FF8A65", "#7B61FF", "#16A34A"];
 
+// Farvepalet til nye kunder (styrer dashboard-kortets accent).
+export const KUNDE_FARVER = ["#FF442B", "#3355FF", "#7B61FF", "#16A34A", "#FF8A65", "#242424"];
+
+// Admin må slette alt. Ellers gælder ejer/creator-reglen.
+export function erAdmin(rolle?: string | null): boolean {
+  return (rolle || "").trim().toLowerCase() === "admin";
+}
+
 export function statusOf(navn: string): StatusDef {
   return STATUS.find((s) => s.navn === navn) || STATUS[0];
 }

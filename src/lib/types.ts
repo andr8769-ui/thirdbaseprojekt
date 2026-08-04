@@ -28,6 +28,7 @@ export type OpgaveDTO = {
   start: string | null;
   slut: string | null;
   noter: string;
+  creatorId: string | null;
   underopgaver: UnderopgaveDTO[];
   kommentarer: KommentarDTO[];
   filer: FilDTO[];
@@ -36,17 +37,43 @@ export type OpgaveDTO = {
 
 export type GruppeDTO = { id: string; navn: string; farve: string; opgaver: OpgaveDTO[] };
 
-export type BoardDTO = { id: string; navn: string; grupper: GruppeDTO[] };
+export type BoardDTO = { id: string; navn: string; creatorId: string | null; grupper: GruppeDTO[] };
 
-export type KundeDTO = { id: string; navn: string; kort: string; branche: string; boards: BoardDTO[] };
+export type KundeDTO = {
+  id: string;
+  navn: string;
+  kort: string;
+  branche: string;
+  farve: string;
+  creatorId: string | null;
+  boards: BoardDTO[];
+};
 
 export type NotiDTO = { id: string; tekst: string; tid: string; farve: string; read: boolean };
 
 export type MigDTO = { id: string; navn: string; rolle: string; ini: string; f: string; email: string };
+
+// Dashboard-kort pr. virksomhed (aggregeret server-side).
+export type NaesteOpgaveDTO = { id: string; navn: string; slut: string | null; boardId: string };
+
+export type DashboardKortDTO = {
+  id: string;
+  navn: string;
+  kort: string;
+  farve: string;
+  boards: number;
+  opgaver: number;
+  faerdige: number;
+  procent: number;
+  overskredne: number;
+  foersteBoardId: string | null;
+  naeste: NaesteOpgaveDTO[];
+};
 
 export type AppData = {
   brugere: BrugerDTO[];
   kunder: KundeDTO[];
   notifikationer: NotiDTO[];
   mig: MigDTO;
+  dashboard: DashboardKortDTO[];
 };
