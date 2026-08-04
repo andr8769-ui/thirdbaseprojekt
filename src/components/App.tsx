@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO, DashboardKortDTO } from "@/lib/types";
+import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO, DashboardKortDTO, FilDTO } from "@/lib/types";
 import {
   STATUS,
   PRIO,
@@ -17,6 +17,11 @@ import {
   erAdmin,
   KUNDE_FARVER,
   IDAG,
+  readableSize,
+  filTilladt,
+  filTypeLabel,
+  MAX_FIL_BYTES,
+  MAX_TASK_BYTES,
 } from "@/lib/constants";
 import {
   setStatus,
@@ -31,6 +36,8 @@ import {
   markNotificationsRead,
   assignUser,
   unassignUser,
+  uploadAttachment,
+  deleteAttachment,
   deleteTask,
   deleteBoard,
   deleteCustomer,
@@ -47,7 +54,8 @@ type Nav =
 type SletMaal =
   | { type: "opgave"; id: string; navn: string }
   | { type: "board"; id: string; navn: string; kundeId: string }
-  | { type: "kunde"; id: string; navn: string };
+  | { type: "kunde"; id: string; navn: string }
+  | { type: "fil"; id: string; navn: string; taskId: string };
 
 type Flat = { o: OpgaveDTO; g: GruppeDTO; b: BoardDTO; k: KundeDTO };
 
@@ -84,6 +92,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [sletMaal, setSletMaal] = useState<SletMaal | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [visAnsvarligMenu, setVisAnsvarligMenu] = useState(false);
+  const [filDragOver, setFilDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [statusMenu, setStatusMenu] = useState<string | null>(null);
   const [prioMenu, setPrioMenu] = useState<string | null>(null);
   const [visNoti, setVisNoti] = useState(false);
@@ -251,6 +261,49 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     act(() => markNotificationsRead());
   };
 
+  // ---- filer ----
+  const filerAf = (taskId: string): FilDTO[] => findTaskIn(data, taskId)?.filer || [];
+  const kanSletteFil = (f: FilDTO) => erAdmin(mig.rolle) || (!!f.uploaderId && f.uploaderId === mig.id);
+  const patchFiler = (d: AppData, taskId: string, fn: (filer: FilDTO[]) => FilDTO[]): AppData =>
+    patchTask(d, taskId, { filer: fn(findTaskIn(d, taskId)?.filer || []) });
+
+  const doUploadFiler = (taskId: string, list: FileList) => {
+    let brugt = filerAf(taskId).reduce((s, f) => s + (f.bytes || 0), 0);
+    for (const file of Array.from(list)) {
+      const temp = tmpId();
+      let fejl: string | null = null;
+      if (file.size === 0) fejl = "Filen er tom.";
+      else if (file.size > MAX_FIL_BYTES) fejl = `Filen er større end ${readableSize(MAX_FIL_BYTES)}.`;
+      else if (!filTilladt(file.name)) fejl = "Filtypen er ikke tilladt.";
+      else if (brugt + file.size > MAX_TASK_BYTES) fejl = `Opgaven ville overstige grænsen på ${readableSize(MAX_TASK_BYTES)}.`;
+
+      const optimistisk: FilDTO = {
+        id: temp, navn: file.name, type: filTypeLabel(file.name),
+        meta: [mig.navn, readableSize(file.size)].join(" · "),
+        harData: false, uploaderId: mig.id, bytes: file.size, pending: !fejl, fejl: fejl || undefined,
+      };
+      setData((d) => patchFiler(d, taskId, (filer) => [...filer, optimistisk]));
+      if (fejl) continue; // klient-afvist — kun inline-fejl, intet server-kald
+      brugt += file.size;
+
+      const fd = new FormData();
+      fd.set("taskId", taskId);
+      fd.set("file", file);
+      startTransition(async () => {
+        try {
+          const res = await uploadAttachment(fd);
+          if (res.ok && res.file) {
+            setData((d) => patchFiler(d, taskId, (filer) => filer.map((x) => (x.id === temp ? res.file! : x))));
+          } else {
+            setData((d) => patchFiler(d, taskId, (filer) => filer.map((x) => (x.id === temp ? { ...x, pending: false, fejl: res.error || "Upload fejlede." } : x))));
+          }
+        } catch {
+          setData((d) => patchFiler(d, taskId, (filer) => filer.map((x) => (x.id === temp ? { ...x, pending: false, fejl: "Upload fejlede." } : x))));
+        }
+      });
+    }
+  };
+
   // Slet-rettighed: admin må alt, ellers kun ejer/creator.
   const kanSlette = (creatorId: string | null | undefined) =>
     erAdmin(mig.rolle) || (!!creatorId && creatorId === mig.id);
@@ -267,13 +320,21 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     } else if (maal.type === "board") {
       if (nav.type === "board" && nav.boardId === maal.id) setNav({ type: "dashboard", kundeId: maal.kundeId });
       setData((d) => ({ ...d, kunder: d.kunder.map((k) => ({ ...k, boards: k.boards.filter((b) => b.id !== maal.id) })) }));
+    } else if (maal.type === "fil") {
+      setData((d) => patchFiler(d, maal.taskId, (filer) => filer.filter((f) => f.id !== maal.id)));
     } else {
       if ("kundeId" in nav && nav.kundeId === maal.id) setNav({ type: "forside" });
       setData((d) => ({ ...d, kunder: d.kunder.filter((k) => k.id !== maal.id), dashboard: d.dashboard.filter((c) => c.id !== maal.id) }));
     }
     startTransition(async () => {
       const res =
-        maal.type === "opgave" ? await deleteTask(maal.id) : maal.type === "board" ? await deleteBoard(maal.id) : await deleteCustomer(maal.id);
+        maal.type === "opgave"
+          ? await deleteTask(maal.id)
+          : maal.type === "board"
+            ? await deleteBoard(maal.id)
+            : maal.type === "fil"
+              ? await deleteAttachment(maal.id)
+              : await deleteCustomer(maal.id);
       if (res.ok) {
         visToast('"' + maal.navn + '" blev slettet.');
       } else {
@@ -1692,7 +1753,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const s = statusOf(o.status);
     const p = prioOf(o.prioritet);
     const faerdigeUnder = o.underopgaver.filter((u) => u.faerdig).length;
-    const filer = o.filer.length ? o.filer : [{ navn: "Ingen vedhæftede filer", type: "—", meta: "Træk filer hertil" }];
+    const filBytes = o.filer.reduce((sum, f) => sum + (f.bytes || 0), 0);
 
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", justifyContent: "flex-end" }}>
@@ -1848,17 +1909,87 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
           )}
 
           <div style={{ padding: "22px 28px", borderBottom: "1px solid #F0F1F4" }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 12 }}>Filer</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filer.map((f, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, border: "1px solid #E6E8EC", padding: "10px 12px" }}>
-                  <div style={{ width: 30, height: 30, background: "#F0F1F4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 700, color: "#6E6E6E" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>Filer</div>
+              <div style={{ fontSize: 11, color: "#9E9E9E" }}>{readableSize(filBytes)} / {readableSize(MAX_TASK_BYTES)}</div>
+            </div>
+
+            {/* Dropzone: klik åbner filvælger, eller træk filer hertil */}
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setFilDragOver(true);
+              }}
+              onDragLeave={() => setFilDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setFilDragOver(false);
+                if (e.dataTransfer.files?.length) doUploadFiler(o.id, e.dataTransfer.files);
+              }}
+              style={{
+                border: "1px dashed " + (filDragOver ? "#3355FF" : "#C4C7CE"),
+                background: filDragOver ? "#F2F5FF" : "#FAFBFC",
+                padding: "18px 12px",
+                textAlign: "center",
+                cursor: "pointer",
+                fontSize: 13,
+                color: filDragOver ? "#3355FF" : "#6E6E6E",
+                transition: "background 120ms, border-color 120ms",
+              }}
+            >
+              Klik eller træk filer hertil · maks {readableSize(MAX_FIL_BYTES)} pr. fil
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  if (e.target.files?.length) doUploadFiler(o.id, e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: o.filer.length ? 12 : 0 }}>
+              {o.filer.map((f) => (
+                <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, border: "1px solid #E6E8EC", padding: "10px 12px", opacity: f.pending ? 0.7 : 1 }}>
+                  <div
+                    style={{
+                      width: 30, height: 30, flex: "none", display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 9, fontWeight: 700, background: f.harData ? "#EAF0FF" : "#F0F1F4", color: f.harData ? "#3355FF" : "#B0B0B0",
+                    }}
+                  >
                     {f.type}
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.navn}</div>
-                    <div style={{ fontSize: 11, color: "#9E9E9E" }}>{f.meta}</div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, color: f.harData ? "#181818" : "#9E9E9E", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {f.navn}
+                    </div>
+                    <div style={{ fontSize: 11, color: f.harData ? "#9E9E9E" : "#B0B0B0" }}>
+                      {f.pending ? "Uploader…" : f.harData ? f.meta : "ingen fil gemt"}
+                    </div>
+                    {f.fejl && <div style={{ fontSize: 11, color: "#B4291A", marginTop: 2 }}>{f.fejl}</div>}
                   </div>
+                  {f.pending && <span className="tb-spinner" />}
+                  {f.harData && !f.pending && (
+                    <a
+                      href={"/api/attachments/" + f.id}
+                      style={{ fontSize: 12, color: "#3355FF", flex: "none", textDecoration: "none" }}
+                      title="Hent fil"
+                    >
+                      Hent
+                    </a>
+                  )}
+                  {!f.pending && kanSletteFil(f) && (
+                    <button
+                      onClick={() => setSletMaal({ type: "fil", id: f.id, navn: f.navn, taskId: o.id })}
+                      title="Slet fil"
+                      style={{ border: "1px solid #E1E4E9", background: "#fff", color: "#B4291A", fontSize: 12, padding: "3px 8px", cursor: "pointer", flex: "none" }}
+                    >
+                      Slet
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -2125,13 +2256,16 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   // ================================================================
   function renderSletDialog() {
     if (!sletMaal) return null;
-    const typeNavn = sletMaal.type === "opgave" ? "opgave" : sletMaal.type === "board" ? "board" : "kunde";
+    const typeNavn =
+      sletMaal.type === "opgave" ? "opgave" : sletMaal.type === "board" ? "board" : sletMaal.type === "fil" ? "fil" : "kunde";
     const advarsel =
       sletMaal.type === "kunde"
         ? "Alle boards, opgaver, kommentarer og notifikationer under kunden slettes permanent."
         : sletMaal.type === "board"
           ? "Alle grupper, opgaver og kommentarer under boardet slettes permanent."
-          : "Opgaven med underopgaver og kommentarer slettes permanent.";
+          : sletMaal.type === "fil"
+            ? "Filen fjernes permanent fra opgaven."
+            : "Opgaven med underopgaver og kommentarer slettes permanent.";
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 80, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(24,24,24,.32)" }}>
         <div style={{ width: 440, background: "#fff", border: "1px solid #E6E8EC", padding: 28 }}>

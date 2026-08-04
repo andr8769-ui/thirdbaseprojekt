@@ -25,14 +25,15 @@ model User {
   lastLoginAt        DateTime?
   createdAt          DateTime @default(now())
 
-  assignedTasks    Task[]         @relation("TaskAssignees")
-  comments         Comment[]
-  mentionedIn      Comment[]      @relation("CommentMentions")
-  activities       Activity[]
-  notifications    Notification[]
-  createdCustomers Customer[]     @relation("CustomerCreator")
-  createdBoards    Board[]        @relation("BoardCreator")
-  createdTasks     Task[]         @relation("TaskCreator")
+  assignedTasks       Task[]         @relation("TaskAssignees")
+  comments            Comment[]
+  mentionedIn         Comment[]      @relation("CommentMentions")
+  activities          Activity[]
+  notifications       Notification[]
+  createdCustomers    Customer[]     @relation("CustomerCreator")
+  createdBoards       Board[]        @relation("BoardCreator")
+  createdTasks        Task[]         @relation("TaskCreator")
+  uploadedAttachments Attachment[]   @relation("AttachmentUploader")
 }
 
 model Customer {
@@ -132,13 +133,19 @@ model Comment {
 }
 
 model Attachment {
-  id     String @id @default(cuid())
-  name   String
-  type   String
-  meta   String
-  taskId String
+  id           String   @id @default(cuid())
+  name         String
+  type         String
+  meta         String
+  taskId       String
+  data         Bytes? // selve filens bytes — hentes ALDRIG i loadAppData
+  size         Int? // bytes; null = gammel attrap-række uden fil
+  mime         String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
 
-  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader User? @relation("AttachmentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([taskId])
 }

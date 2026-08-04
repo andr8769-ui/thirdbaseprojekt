@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { IDAG } from "@/lib/constants";
-import type { AppData, KundeDTO, OpgaveDTO, DashboardKortDTO } from "@/lib/types";
+import { IDAG, MDR, readableSize } from "@/lib/constants";
+import type { AppData, KundeDTO, OpgaveDTO, DashboardKortDTO, FilDTO } from "@/lib/types";
 
 // Dashboard-kortene beregnes fra det allerede-indlæste datatræ (nul ekstra DB-kald)
 // i stedet for ~23 per-kunde count-queries. Aggregeringen er in-memory over de
@@ -83,7 +83,11 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
                     creatorId: true,
                     assignees: { orderBy: { createdAt: "asc" }, select: { id: true } },
                     subtasks: { orderBy: { position: "asc" }, select: { id: true, name: true, done: true } },
-                    files: { orderBy: { id: "asc" }, select: { name: true, type: true, meta: true } },
+                    // VIGTIGT: 'data'-kolonnen (filens bytes) hentes ALDRIG her — kun metadata.
+                    files: {
+                      orderBy: { createdAt: "asc" },
+                      select: { id: true, name: true, type: true, meta: true, size: true, mime: true, uploadedById: true, createdAt: true },
+                    },
                     comments: {
                       orderBy: { createdAt: "asc" },
                       select: { id: true, body: true, displayTime: true, authorId: true },
@@ -103,6 +107,8 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
       select: { id: true, text: true, time: true, color: true, read: true },
     }),
   ]);
+
+  const brugerNavn = new Map(users.map((u) => [u.id, u.name] as const));
 
   const kunder: KundeDTO[] = customers.map((k) => ({
     id: k.id,
@@ -132,7 +138,14 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
             creatorId: t.creatorId,
             underopgaver: t.subtasks.map((s) => ({ id: s.id, navn: s.name, faerdig: s.done })),
             kommentarer: t.comments.map((c) => ({ id: c.id, u: c.authorId, tid: c.displayTime || "lige nu", tekst: c.body })),
-            filer: t.files.map((f) => ({ navn: f.name, type: f.type, meta: f.meta })),
+            filer: t.files.map((f): FilDTO => {
+              const harData = f.size != null;
+              const dato = f.createdAt ? `${f.createdAt.getDate()}. ${MDR[f.createdAt.getMonth()]}` : "";
+              const meta = harData
+                ? [brugerNavn.get(f.uploadedById || "") || "Ukendt", readableSize(f.size!), dato].filter(Boolean).join(" · ")
+                : f.meta;
+              return { id: f.id, navn: f.name, type: f.type, meta, harData, uploaderId: f.uploadedById, bytes: f.size };
+            }),
             log: t.activities.map((a) => ({ tekst: a.text, tid: a.displayTime || "lige nu", farve: a.color })),
           }),
         ),

@@ -41,6 +41,38 @@ export function erAdmin(rolle?: string | null): boolean {
   return (rolle || "").trim().toLowerCase() === "admin";
 }
 
+// ---- Fil-upload (gemt i Postgres) ----
+export const MAX_FIL_BYTES = 4 * 1024 * 1024; // 4 MB pr. fil
+export const MAX_TASK_BYTES = 25 * 1024 * 1024; // 25 MB samlet pr. opgave
+
+// Tilladte filtyper (endelser). Alt andet afvises server-side.
+export const TILLADTE_EXT = new Set([
+  "pdf",
+  "png", "jpg", "jpeg", "gif", "webp", "svg",
+  "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+  "csv", "txt", "zip",
+]);
+
+export function filEndelse(navn: string): string {
+  const dele = navn.split(".");
+  return dele.length > 1 ? dele.pop()!.toLowerCase() : "";
+}
+
+export function filTilladt(navn: string): boolean {
+  return TILLADTE_EXT.has(filEndelse(navn));
+}
+
+export function filTypeLabel(navn: string): string {
+  const e = filEndelse(navn);
+  return e ? e.toUpperCase().slice(0, 4) : "FIL";
+}
+
+export function readableSize(bytes: number): string {
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(1).replace(".", ",") + " MB";
+  if (bytes >= 1024) return Math.round(bytes / 1024) + " KB";
+  return bytes + " B";
+}
+
 export function statusOf(navn: string): StatusDef {
   return STATUS.find((s) => s.navn === navn) || STATUS[0];
 }

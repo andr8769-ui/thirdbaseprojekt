@@ -15,7 +15,17 @@ export type UnderopgaveDTO = { id: string; navn: string; faerdig: boolean };
 
 export type KommentarDTO = { id: string; u: string; tid: string; tekst: string };
 
-export type FilDTO = { navn: string; type: string; meta: string };
+export type FilDTO = {
+  id: string;
+  navn: string;
+  type: string;
+  meta: string;
+  harData: boolean; // false = gammel attrap-række uden gemt fil
+  uploaderId: string | null;
+  bytes: number | null;
+  pending?: boolean; // optimistisk upload i gang
+  fejl?: string; // inline upload-fejl
+};
 
 export type LogDTO = { tekst: string; tid: string; farve: string };
 

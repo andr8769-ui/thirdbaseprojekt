@@ -4,9 +4,24 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin, initialerAf, farveForNavn } from "@/lib/constants";
+import {
+  statusOf,
+  prioOf,
+  IDAG,
+  MDR,
+  KUNDE_FARVER,
+  erAdmin,
+  initialerAf,
+  farveForNavn,
+  readableSize,
+  filTilladt,
+  filTypeLabel,
+  MAX_FIL_BYTES,
+  MAX_TASK_BYTES,
+} from "@/lib/constants";
 import { createNotification } from "@/lib/notifications";
 import { sendEmailDetailed, activeTransport, effectiveFrom } from "@/lib/email";
+import type { FilDTO } from "@/lib/types";
 
 /** Log ud. */
 export async function logout() {
@@ -349,6 +364,85 @@ export async function deleteCustomer(customerId: string): Promise<SletResultat> 
   if (!kunde) return { ok: false, reason: "Kunden findes ikke." };
   if (!maaSlette(kunde.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette denne kunde." };
   await prisma.customer.delete({ where: { id: customerId } });
+  return { ok: true };
+}
+
+// ================================================================
+// FIL-UPLOAD (gemt direkte i Postgres)
+// ================================================================
+
+/** Upload én fil til en opgave. Bytes gemmes i Attachment.data. */
+export async function uploadAttachment(formData: FormData): Promise<{ ok: boolean; error?: string; file?: FilDTO }> {
+  const me = await actor();
+  const taskId = String(formData.get("taskId") || "");
+  const file = formData.get("file");
+  if (!taskId || !(file instanceof File)) return { ok: false, error: "Der blev ikke sendt nogen fil." };
+  if (file.size === 0) return { ok: false, error: "Filen er tom." };
+  if (file.size > MAX_FIL_BYTES) return { ok: false, error: `Filen er for stor (maks ${readableSize(MAX_FIL_BYTES)} pr. fil).` };
+  if (!filTilladt(file.name)) return { ok: false, error: "Filtypen er ikke tilladt." };
+
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } });
+  if (!task) return { ok: false, error: "Opgaven findes ikke." };
+
+  // Samlet grænse pr. opgave.
+  const agg = await prisma.attachment.aggregate({ where: { taskId }, _sum: { size: true } });
+  const brugt = agg._sum.size || 0;
+  if (brugt + file.size > MAX_TASK_BYTES) {
+    return { ok: false, error: `Opgaven har nået grænsen på ${readableSize(MAX_TASK_BYTES)} vedhæftede filer.` };
+  }
+
+  const buf = Buffer.from(await file.arrayBuffer());
+  const type = filTypeLabel(file.name);
+  const created = await prisma.attachment.create({
+    data: {
+      taskId,
+      name: file.name,
+      type,
+      meta: readableSize(file.size),
+      data: buf,
+      size: file.size,
+      mime: file.type || null,
+      uploadedById: me.id,
+    },
+    select: { id: true, createdAt: true },
+  });
+  await prisma.activity.create({
+    data: { taskId, actorId: me.id, text: me.navn + ' vedhæftede "' + file.name + '"', color: "#3355FF", displayTime: "lige nu" },
+  });
+
+  // Log samlet fil-forbrug (Neon-planen har kun 0,5 GB i alt).
+  const total = await prisma.attachment.aggregate({ _sum: { size: true } });
+  console.log(`[upload] ${file.name} (${readableSize(file.size)}) — samlet fil-forbrug nu ${readableSize(total._sum.size || 0)}`);
+
+  const dato = `${created.createdAt.getDate()}. ${MDR[created.createdAt.getMonth()]}`;
+  return {
+    ok: true,
+    file: {
+      id: created.id,
+      navn: file.name,
+      type,
+      meta: [me.navn, readableSize(file.size), dato].join(" · "),
+      harData: true,
+      uploaderId: me.id,
+      bytes: file.size,
+    },
+  };
+}
+
+/** Slet en vedhæftet fil — kun uploader eller admin. */
+export async function deleteAttachment(id: string): Promise<SletResultat> {
+  const me = await actor();
+  const att = await prisma.attachment.findUnique({
+    where: { id },
+    select: { id: true, name: true, taskId: true, uploadedById: true },
+  });
+  if (!att) return { ok: false, reason: "Filen findes ikke." };
+  const maa = erAdmin(me.role) || (!!att.uploadedById && att.uploadedById === me.id);
+  if (!maa) return { ok: false, reason: "Du har ikke rettigheder til at slette denne fil." };
+  await prisma.attachment.delete({ where: { id } });
+  await prisma.activity.create({
+    data: { taskId: att.taskId, actorId: me.id, text: me.navn + ' slettede filen "' + att.name + '"', color: "#C4C7CE", displayTime: "lige nu" },
+  });
   return { ok: true };
 }
 
