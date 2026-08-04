@@ -21,6 +21,7 @@ import {
 } from "@/lib/constants";
 import { createNotification } from "@/lib/notifications";
 import { sendEmailDetailed, activeTransport, effectiveFrom } from "@/lib/email";
+import { withDbRetry } from "@/lib/db";
 import type { FilDTO } from "@/lib/types";
 
 /** Log ud. */
@@ -32,11 +33,12 @@ async function actor() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Ikke logget ind");
   // Læs rolle/navn fra DB, så fx en admin-promovering slår igennem med det samme
-  // (uden at brugeren skal logge ind igen).
-  const dbu = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, role: true },
-  });
+  // (uden at brugeren skal logge ind igen). withDbRetry: overlever Neon cold start —
+  // og da hver server action starter med actor(), dækker det cold start for dem alle.
+  const dbu = await withDbRetry(
+    () => prisma.user.findUnique({ where: { id: session.user.id }, select: { name: true, role: true } }),
+    "actor",
+  );
   return {
     id: session.user.id,
     navn: dbu?.name || session.user.name || "En bruger",

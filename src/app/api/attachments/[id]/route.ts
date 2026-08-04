@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { withDbRetry } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!session?.user?.id) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;
-  const att = await prisma.attachment.findUnique({
-    where: { id },
-    select: { name: true, mime: true, size: true, data: true },
-  });
+  const att = await withDbRetry(
+    () => prisma.attachment.findUnique({ where: { id }, select: { name: true, mime: true, size: true, data: true } }),
+    "attachment",
+  );
   if (!att || !att.data) return new Response("Not found", { status: 404 });
 
   const bytes = new Uint8Array(att.data);

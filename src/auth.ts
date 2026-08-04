@@ -1,6 +1,7 @@
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 import { prisma } from "@/lib/prisma";
+import { withDbRetry } from "@/lib/db";
 import { initialerAf, farveForNavn } from "@/lib/constants";
 
 // Mails der automatisk får rollen Admin (komma-separeret env, default andreas).
@@ -36,7 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const nu = new Date();
       // Kobl på den eksisterende brugerrække via email (ingen dubletter) og
       // opdatér navn/avatar fra Google. lastLoginAt driver Aktiv/Inviteret-status.
-      await prisma.user.upsert({
+      await withDbRetry(() => prisma.user.upsert({
         where: { email },
         update: {
           name: navn,
@@ -54,7 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: erAdmin ? "Admin" : "Medarbejder",
           lastLoginAt: nu,
         },
-      });
+      }), "signIn");
 
       return true;
     },
@@ -62,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       const email = (user?.email ?? token.email ?? "").toString().toLowerCase();
       if (user && email) {
-        const dbUser = await prisma.user.findUnique({ where: { email } });
+        const dbUser = await withDbRetry(() => prisma.user.findUnique({ where: { email } }), "jwt");
         if (dbUser) {
           token.uid = dbUser.id;
           token.role = dbUser.role;

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { withDbRetry } from "@/lib/db";
 import { IDAG, MDR, readableSize } from "@/lib/constants";
 import type { AppData, KundeDTO, OpgaveDTO, DashboardKortDTO, FilDTO } from "@/lib/types";
 
@@ -44,7 +45,7 @@ function beregnDashboard(kunder: KundeDTO[]): DashboardKortDTO[] {
 // Loader hele datatræet + den aktuelle brugers notifikationer i tre parallelle
 // queries. Kun de felter UI'et bruger vælges. Dashboard + mig udledes lokalt.
 export async function loadAppData(currentUserId: string): Promise<AppData> {
-  const [users, customers, notifikationer] = await Promise.all([
+  const [users, customers, notifikationer] = await withDbRetry(() => Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, image: true, initials: true, color: true, role: true, email: true },
@@ -106,7 +107,7 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
       orderBy: { createdAt: "desc" },
       select: { id: true, text: true, time: true, color: true, read: true },
     }),
-  ]);
+  ]), "loadAppData");
 
   const brugerNavn = new Map(users.map((u) => [u.id, u.name] as const));
 
