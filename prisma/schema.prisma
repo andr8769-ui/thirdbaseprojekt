@@ -21,6 +21,8 @@ model User {
   color              String   @default("#3355FF")
   role               String   @default("Medarbejder")
   emailNotifications Boolean  @default(true)
+  invitedAt          DateTime?
+  lastLoginAt        DateTime?
   createdAt          DateTime @default(now())
 
   assignedTasks    Task[]         @relation("TaskAssignees")

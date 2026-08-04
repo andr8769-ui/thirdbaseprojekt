@@ -28,6 +28,8 @@ import {
   createBoard,
   setCustomerColor,
   markNotificationsRead,
+  assignUser,
+  unassignUser,
   deleteTask,
   deleteBoard,
   deleteCustomer,
@@ -73,6 +75,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
   const [panelId, setPanelId] = useState<string | null>(deepLink ? deepLink.taskId : null);
   const [sletMaal, setSletMaal] = useState<SletMaal | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [visAnsvarligMenu, setVisAnsvarligMenu] = useState(false);
   const [statusMenu, setStatusMenu] = useState<string | null>(null);
   const [prioMenu, setPrioMenu] = useState<string | null>(null);
   const [visNoti, setVisNoti] = useState(false);
@@ -263,6 +266,11 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
             >
               Overblik · alle kunder
             </button>
+            {erAdmin(mig.rolle) && (
+              <a href="/brugere" style={{ ...sx(navStil(false)), textDecoration: "none", display: "block" }}>
+                Brugere
+              </a>
+            )}
           </div>
 
           <div style={{ padding: "24px 18px 8px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1613,15 +1621,52 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
             </div>
             <div>
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 8 }}>Ansvarlige</div>
-              <div style={{ display: "flex", gap: 6 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", position: "relative" }}>
                 {o.ansvarlige.map((id) => {
                   const bb = bruger(id);
                   return (
-                    <div key={id} title={bb.navn} style={sx(AV(bb.f, 30))}>
-                      {bb.ini}
-                    </div>
+                    <span key={id} title={bb.navn} style={{ position: "relative", display: "inline-flex" }}>
+                      <span style={sx(AV(bb.f, 30))}>{bb.ini}</span>
+                      <button
+                        onClick={() => act(() => unassignUser(o.id, id))}
+                        title={"Fjern " + bb.navn}
+                        style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, lineHeight: 1, fontSize: 11, border: "1px solid #E1E4E9", background: "#fff", color: "#6E6E6E", cursor: "pointer", padding: 0, borderRadius: "50%" }}
+                      >
+                        ×
+                      </button>
+                    </span>
                   );
                 })}
+                <button
+                  onClick={() => setVisAnsvarligMenu((v) => !v)}
+                  title="Tilføj ansvarlig"
+                  style={{ width: 30, height: 30, border: "1px dashed #C4C7CE", background: "#fff", color: "#6E6E6E", fontSize: 16, lineHeight: 1, cursor: "pointer" }}
+                >
+                  +
+                </button>
+                {visAnsvarligMenu && (
+                  <div style={{ position: "absolute", top: 38, left: 0, width: 250, background: "#fff", border: "1px solid #E1E4E9", boxShadow: "0 10px 26px rgba(24,24,24,.14)", zIndex: 30, maxHeight: 300, overflow: "auto" }}>
+                    {data.brugere.filter((b) => o.ansvarlige.indexOf(b.id) < 0).map((b) => (
+                      <button
+                        key={b.id}
+                        onClick={() => {
+                          setVisAnsvarligMenu(false);
+                          act(() => assignUser(o.id, b.id));
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: 0, borderBottom: "1px solid #F0F1F4", padding: "9px 12px", cursor: "pointer" }}
+                      >
+                        <span style={sx(AV(b.f, 24))}>{b.ini}</span>
+                        <span style={{ display: "flex", flexDirection: "column" }}>
+                          <span style={{ fontSize: 13, color: "#181818" }}>{b.navn}</span>
+                          <span style={{ fontSize: 11, color: "#9E9E9E" }}>{b.rolle}</span>
+                        </span>
+                      </button>
+                    ))}
+                    {data.brugere.filter((b) => o.ansvarlige.indexOf(b.id) < 0).length === 0 && (
+                      <div style={{ padding: 12, fontSize: 13, color: "#9E9E9E" }}>Alle brugere er tilføjet.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div>

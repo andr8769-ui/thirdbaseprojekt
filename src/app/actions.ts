@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin } from "@/lib/constants";
+import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin, initialerAf, farveForNavn } from "@/lib/constants";
 import { createNotification } from "@/lib/notifications";
 import { sendEmailDetailed, activeTransport, effectiveFrom } from "@/lib/email";
 
@@ -405,4 +405,144 @@ export async function sendTestEmail(): Promise<TestMailResultat> {
 
   const res = await sendEmailDetailed({ to: bruger.email, subject: "Testmail fra thirdbase Projektstyring", html, text });
   return { ok: res.ok, transport: res.transport, from: res.from, to: bruger.email, error: res.error };
+}
+
+// ================================================================
+// BRUGERADMINISTRATION (kun admin)
+// ================================================================
+function appUrl(): string {
+  return (process.env.AUTH_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
+const EMAIL_RE = /^[^@\s]+@thirdbase\.dk$/;
+
+function buildWelcome(navn: string): { subject: string; html: string; text: string } {
+  const link = appUrl();
+  const fornavn = navn.split(" ")[0] || navn;
+  const subject = "Du er oprettet i thirdbase Projektstyring";
+  const html = `<!doctype html><html lang="da"><body style="margin:0;background:#F7F8F9;font-family:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#181818;">
+    <div style="max-width:520px;margin:0 auto;padding:32px 20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+        <span style="display:inline-block;width:12px;height:12px;background:#FF442B;transform:rotate(45deg);"></span>
+        <span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;">thirdbase</span>
+        <span style="font-size:12px;color:#9E9E9E;">· Projektstyring</span>
+      </div>
+      <div style="background:#fff;border:1px solid #E6E8EC;padding:28px;">
+        <div style="font-size:19px;font-weight:600;line-height:1.35;">Velkommen, ${fornavn}</div>
+        <div style="margin-top:14px;font-size:14px;line-height:1.7;color:#4A4A4A;">
+          Du er blevet oprettet i thirdbase Projektstyring — vores interne værktøj til boards,
+          opgaver og deadlines for hver kunde.
+        </div>
+        <div style="margin-top:14px;font-size:14px;line-height:1.7;color:#4A4A4A;">
+          Du logger ind med din <strong>@thirdbase.dk</strong> Google-konto — helt uden adgangskode.
+          Klik blot på knappen herunder og vælg din thirdbase-konto.
+        </div>
+        <a href="${link}" style="display:inline-block;margin-top:22px;background:#FF442B;color:#fff;font-size:15px;font-weight:600;text-decoration:none;padding:12px 22px;">Åbn Projektstyring</a>
+        <div style="margin-top:22px;font-size:13px;line-height:1.7;color:#6E6E6E;">
+          Du får en e-mail, når du bliver tildelt en opgave eller nævnt i en kommentar.
+          Det kan slås fra under <a href="${link}/indstillinger" style="color:#3355FF;">Indstillinger</a>.
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+  const text = [
+    `Velkommen, ${fornavn}`,
+    "",
+    "Du er blevet oprettet i thirdbase Projektstyring.",
+    "Du logger ind med din @thirdbase.dk Google-konto — helt uden adgangskode.",
+    "",
+    `Åbn Projektstyring: ${link}`,
+    "",
+    "Du får en e-mail, når du bliver tildelt en opgave eller nævnt i en kommentar.",
+    `Det kan slås fra under Indstillinger: ${link}/indstillinger`,
+  ].join("\n");
+  return { subject, html, text };
+}
+
+export type BrugerResultat = {
+  ok: boolean;
+  error?: string;
+  mail?: { ok: boolean; transport: string; to?: string; error?: string };
+};
+
+/** Opret (eller genindbyd) en kollega som bruger — kun admin. Sender velkomstmail. */
+export async function createUser(navn: string, email: string): Promise<BrugerResultat> {
+  const me = await actor();
+  if (!erAdmin(me.role)) return { ok: false, error: "Kun administratorer kan oprette brugere." };
+
+  const rentNavn = navn.trim();
+  const rentEmail = email.trim().toLowerCase();
+  if (!rentNavn) return { ok: false, error: "Angiv et navn." };
+  if (!rentEmail.endsWith("@thirdbase.dk")) return { ok: false, error: "E-mailen skal slutte på @thirdbase.dk." };
+  if (!EMAIL_RE.test(rentEmail)) return { ok: false, error: "Ugyldig @thirdbase.dk-e-mailadresse." };
+
+  const eksisterende = await prisma.user.findUnique({ where: { email: rentEmail }, select: { invitedAt: true } });
+  await prisma.user.upsert({
+    where: { email: rentEmail },
+    // Opdatér navn; sæt invitedAt hvis brugeren ikke allerede er inviteret (undgå at nulstille).
+    update: { name: rentNavn, ...(eksisterende?.invitedAt ? {} : { invitedAt: new Date() }) },
+    create: {
+      email: rentEmail,
+      name: rentNavn,
+      initials: initialerAf(rentNavn),
+      color: farveForNavn(rentEmail),
+      role: "Medarbejder",
+      emailNotifications: true,
+      invitedAt: new Date(),
+    },
+  });
+
+  const { subject, html, text } = buildWelcome(rentNavn);
+  const mail = await sendEmailDetailed({ to: rentEmail, subject, html, text });
+
+  revalidatePath("/brugere");
+  revalidatePath("/");
+  return { ok: true, mail: { ok: mail.ok, transport: mail.transport, to: rentEmail, error: mail.error } };
+}
+
+/** Send velkomst-/invitationsmailen igen — kun admin. */
+export async function resendInvite(userId: string): Promise<BrugerResultat> {
+  const me = await actor();
+  if (!erAdmin(me.role)) return { ok: false, error: "Kun administratorer kan sende invitationer." };
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  if (!u) return { ok: false, error: "Brugeren findes ikke." };
+  const { subject, html, text } = buildWelcome(u.name);
+  const mail = await sendEmailDetailed({ to: u.email, subject, html, text });
+  return { ok: true, mail: { ok: mail.ok, transport: mail.transport, to: u.email, error: mail.error } };
+}
+
+/** Tildel en bruger som ansvarlig på en opgave (notifikation + mail). */
+export async function assignUser(taskId: string, userId: string) {
+  const me = await actor();
+  const ctx = await taskKontekst(taskId);
+  if (!ctx) return;
+  if (ctx.assignees.some((a) => a.id === userId)) return; // allerede ansvarlig
+  await prisma.task.update({ where: { id: taskId }, data: { assignees: { connect: { id: userId } } } });
+  const bruger = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+  await prisma.activity.create({
+    data: { taskId, actorId: me.id, text: me.navn + " tildelte " + (bruger?.name || "en bruger"), color: "#3355FF", displayTime: "lige nu" },
+  });
+  await createNotification({
+    recipientId: userId,
+    actor: me,
+    text: me.navn + ' tildelte dig "' + ctx.name + '"',
+    color: "#3355FF",
+    taskId,
+    taskName: ctx.name,
+    customerName: ctx.group?.board?.customer?.name ?? null,
+  });
+  revalidatePath("/");
+}
+
+/** Fjern en bruger som ansvarlig på en opgave. */
+export async function unassignUser(taskId: string, userId: string) {
+  const me = await actor();
+  const t = await prisma.task.findUnique({ where: { id: taskId }, select: { id: true } });
+  if (!t) return;
+  await prisma.task.update({ where: { id: taskId }, data: { assignees: { disconnect: { id: userId } } } });
+  const bruger = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+  await prisma.activity.create({
+    data: { taskId, actorId: me.id, text: me.navn + " fjernede " + (bruger?.name || "en bruger") + " som ansvarlig", color: "#C4C7CE", displayTime: "lige nu" },
+  });
+  revalidatePath("/");
 }

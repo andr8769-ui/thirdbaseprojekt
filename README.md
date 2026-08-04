@@ -35,9 +35,14 @@ persisteres i databasen via **server actions** — intet gemmes i `localStorage`
   **ejer/creator** må slette; relaterede grupper, opgaver, kommentarer og notifikationer fjernes via
   cascade. Admin-rollen styres af `ADMIN_EMAILS` (default `andreas@thirdbase.dk`) og sættes både ved
   login og som backfill ved hvert build.
-- **E-mail-notifikationer** — bliver du nævnt, får en kommentar på din opgave, eller markeres en af
-  dine opgaver færdig, får du både en in-app notifikation og en e-mail (kan slås fra under
-  **/indstillinger**). Du får aldrig mail om dine egne handlinger.
+- **E-mail-notifikationer** — bliver du nævnt, får en kommentar på din opgave, tildelt en opgave,
+  eller markeres en af dine opgaver færdig, får du både en in-app notifikation og en e-mail (kan
+  slås fra under **/indstillinger**). Du får aldrig mail om dine egne handlinger.
+- **Brugeradministration** (`/brugere`, kun admin) — opret kolleger som brugere **før** de selv har
+  logget ind og send dem en velkomstmail. Tabellen viser navn, e-mail, rolle, status
+  (**Aktiv** hvis de har logget ind, ellers **Inviteret**) og oprettelsestidspunkt, med
+  'Send invitation igen' pr. bruger. Google-login kobler på den eksisterende bruger via e-mail
+  (ingen dubletter) og opdaterer navn/avatar. Inviterede brugere kan tildeles opgaver med det samme.
 - **Mit arbejde** — dine åbne opgaver grupperet i Forsinket / I dag / Denne uge / Senere.
 - **Overblik · alle kunder** — KPI’er, arbejdsbelastning pr. teammedlem, åbne opgaver pr. kunde.
 - **Kunde-dashboards** — statusfordeling (donut), opgaver pr. teammedlem (søjler), kommende deadlines.

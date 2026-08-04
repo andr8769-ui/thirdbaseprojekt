@@ -194,6 +194,29 @@ export default function SettingsForm({
             </div>
           </div>
         )}
+
+        {/* Administration (kun admin) */}
+        {isAdmin && (
+          <div style={{ background: "#fff", border: "1px solid #E6E8EC", marginTop: 16 }}>
+            <div style={{ padding: "16px 20px", borderBottom: "1px solid #F0F1F4", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>
+              Administration
+            </div>
+            <div style={{ padding: 20, display: "flex", alignItems: "center", gap: 16 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 500 }}>Brugere</div>
+                <div style={{ fontSize: 13, color: "#6E6E6E", marginTop: 4, lineHeight: 1.5 }}>
+                  Opret kolleger som brugere før de selv logger ind, og send velkomstmails.
+                </div>
+              </div>
+              <a
+                href="/brugere"
+                style={{ height: 40, display: "inline-flex", alignItems: "center", padding: "0 16px", border: "1px solid #E1E4E9", background: "#fff", color: "#181818", fontSize: 14, fontWeight: 600, textDecoration: "none" }}
+              >
+                Åbn brugere
+              </a>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

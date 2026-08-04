@@ -33,11 +33,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const billede = (profile as { picture?: string } | undefined)?.picture ?? null;
       const erAdmin = adminEmails().includes(email);
 
+      const nu = new Date();
+      // Kobl på den eksisterende brugerrække via email (ingen dubletter) og
+      // opdatér navn/avatar fra Google. lastLoginAt driver Aktiv/Inviteret-status.
       await prisma.user.upsert({
         where: { email },
         update: {
           name: navn,
           image: billede ?? undefined,
+          lastLoginAt: nu,
           // Promovér admin-mails; nedgrader aldrig andre roller.
           ...(erAdmin ? { role: "Admin" } : {}),
         },
@@ -48,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           initials: initialerAf(navn),
           color: farveForNavn(email),
           role: erAdmin ? "Admin" : "Medarbejder",
+          lastLoginAt: nu,
         },
       });
 
