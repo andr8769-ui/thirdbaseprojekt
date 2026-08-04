@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO, DashboardKortDTO } from "@/lib/types";
 import {
@@ -16,6 +16,7 @@ import {
   prioOf,
   erAdmin,
   KUNDE_FARVER,
+  IDAG,
 } from "@/lib/constants";
 import {
   setStatus,
@@ -50,14 +51,21 @@ type SletMaal =
 
 type Flat = { o: OpgaveDTO; g: GruppeDTO; b: BoardDTO; k: KundeDTO };
 
-export default function App({ data, initialTaskId }: { data: AppData; initialTaskId?: string | null }) {
+export default function App({ data: initialData, initialTaskId }: { data: AppData; initialTaskId?: string | null }) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
+
+  // Lokal kopi af datatræet → optimistiske opdateringer rammer skærmen med det samme.
+  // Resynkroniseres når serveren sender friske props (navigation / router.refresh på fejl).
+  const [data, setData] = useState<AppData>(initialData);
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   // Deep-link fra e-mail: åbn direkte på en opgave.
   const deepLink = (() => {
     if (!initialTaskId) return null;
-    for (const k of data.kunder)
+    for (const k of initialData.kunder)
       for (const b of k.boards)
         for (const g of b.grupper)
           for (const o of g.opgaver)
@@ -116,11 +124,132 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
     return true;
   };
 
-  const act = (fn: () => Promise<unknown>) =>
+  // Kør en action i baggrunden (til logud o.l.).
+  const act = (fn: () => Promise<unknown>) => startTransition(async () => { await fn(); });
+
+  // ---- optimistisk mutation ----
+  // Opdatér skærmen straks (transform), kør server action i baggrunden. Fejler den,
+  // vises en fejlbesked og skærmen resynkroniseres fra serveren (router.refresh →
+  // useEffect på initialData ruller den optimistiske ændring tilbage til sandheden).
+  function mutate(transform: (d: AppData) => AppData, action: () => Promise<unknown>, fejl = "Ændringen kunne ikke gemmes") {
+    setData((d) => transform(d));
     startTransition(async () => {
-      await fn();
-      router.refresh();
+      try {
+        const res = (await action()) as { ok?: boolean; reason?: string } | undefined;
+        if (res && typeof res === "object" && "ok" in res && res.ok === false) {
+          visToast(res.reason || fejl);
+          router.refresh();
+        }
+      } catch {
+        visToast(fejl + " – prøver igen.");
+        router.refresh();
+      }
     });
+  }
+
+  const plusDage = (d: string, n: number) => new Date(new Date(d).getTime() + n * 86400000).toISOString().slice(0, 10);
+  const tmpId = () => "tmp-" + Math.random().toString(36).slice(2, 10);
+
+  const patchTask = (d: AppData, taskId: string, patch: Partial<OpgaveDTO>): AppData => ({
+    ...d,
+    kunder: d.kunder.map((k) => ({
+      ...k,
+      boards: k.boards.map((b) => ({
+        ...b,
+        grupper: b.grupper.map((g) => ({ ...g, opgaver: g.opgaver.map((o) => (o.id === taskId ? { ...o, ...patch } : o)) })),
+      })),
+    })),
+  });
+  const findTaskIn = (d: AppData, taskId: string): OpgaveDTO | undefined => {
+    for (const k of d.kunder) for (const b of k.boards) for (const g of b.grupper) for (const o of g.opgaver) if (o.id === taskId) return o;
+    return undefined;
+  };
+  const mapGruppe = (d: AppData, groupId: string, fn: (g: GruppeDTO) => GruppeDTO): AppData => ({
+    ...d,
+    kunder: d.kunder.map((k) => ({
+      ...k,
+      boards: k.boards.map((b) => ({ ...b, grupper: b.grupper.map((g) => (g.id === groupId ? fn(g) : g)) })),
+    })),
+  });
+
+  // ---- optimistiske handlers ----
+  const doSetStatus = (taskId: string, status: string) =>
+    mutate((d) => patchTask(d, taskId, { status }), () => setStatus(taskId, status));
+  const doSetPriority = (taskId: string, prioritet: string) =>
+    mutate((d) => patchTask(d, taskId, { prioritet }), () => setPriority(taskId, prioritet));
+  const doToggleSubtask = (taskId: string, subId: string) =>
+    mutate(
+      (d) => patchTask(d, taskId, { underopgaver: (findTaskIn(d, taskId)?.underopgaver || []).map((u) => (u.id === subId ? { ...u, faerdig: !u.faerdig } : u)) }),
+      () => toggleSubtask(subId),
+    );
+  const doAssign = (taskId: string, userId: string) =>
+    mutate(
+      (d) => patchTask(d, taskId, { ansvarlige: Array.from(new Set([...(findTaskIn(d, taskId)?.ansvarlige || []), userId])) }),
+      () => assignUser(taskId, userId),
+    );
+  const doUnassign = (taskId: string, userId: string) =>
+    mutate(
+      (d) => patchTask(d, taskId, { ansvarlige: (findTaskIn(d, taskId)?.ansvarlige || []).filter((id) => id !== userId) }),
+      () => unassignUser(taskId, userId),
+    );
+  const doSetCustomerColor = (kundeId: string, farve: string) =>
+    mutate(
+      (d) => ({
+        ...d,
+        kunder: d.kunder.map((k) => (k.id === kundeId ? { ...k, farve } : k)),
+        dashboard: d.dashboard.map((c) => (c.id === kundeId ? { ...c, farve } : c)),
+      }),
+      () => setCustomerColor(kundeId, farve),
+    );
+  const doAddComment = (taskId: string, tekst: string) => {
+    const temp = { id: tmpId(), u: mig.id, tid: "lige nu", tekst };
+    mutate((d) => patchTask(d, taskId, { kommentarer: [...(findTaskIn(d, taskId)?.kommentarer || []), temp] }), () => addComment(taskId, tekst));
+  };
+  const doAddTask = (groupId: string, navn: string) => {
+    const temp = tmpId();
+    const nyOpg: OpgaveDTO = {
+      id: temp, navn, ansvarlige: [mig.id], status: "Ikke startet", prioritet: "Medium",
+      start: IDAG, slut: plusDage(IDAG, 7), noter: "", creatorId: mig.id,
+      underopgaver: [], kommentarer: [], filer: [], log: [],
+    };
+    setData((d) => mapGruppe(d, groupId, (g) => ({ ...g, opgaver: [...g.opgaver, nyOpg] })));
+    startTransition(async () => {
+      try {
+        const res = (await addTask(groupId, navn)) as { id?: string } | undefined;
+        if (res?.id) setData((d) => patchTask(d, temp, { id: res.id! }));
+      } catch {
+        setData((d) => mapGruppe(d, groupId, (g) => ({ ...g, opgaver: g.opgaver.filter((o) => o.id !== temp) })));
+        visToast("Opgaven kunne ikke oprettes.");
+      }
+    });
+  };
+  const doMoveTask = (taskId: string, targetGroupId: string, beforeId: string | null) =>
+    mutate(
+      (d) => {
+        const o = findTaskIn(d, taskId);
+        if (!o) return d;
+        const uden: AppData = {
+          ...d,
+          kunder: d.kunder.map((k) => ({
+            ...k,
+            boards: k.boards.map((b) => ({ ...b, grupper: b.grupper.map((g) => ({ ...g, opgaver: g.opgaver.filter((x) => x.id !== taskId) })) })),
+          })),
+        };
+        return mapGruppe(uden, targetGroupId, (g) => {
+          const idx = beforeId ? g.opgaver.findIndex((x) => x.id === beforeId) : -1;
+          const arr = g.opgaver.slice();
+          if (idx >= 0) arr.splice(idx, 0, o);
+          else arr.push(o);
+          return { ...g, opgaver: arr };
+        });
+      },
+      () => moveTask(taskId, targetGroupId, beforeId),
+    );
+  const doMarkNotisRead = () => {
+    if (data.notifikationer.every((n) => n.read)) return;
+    setData((d) => ({ ...d, notifikationer: d.notifikationer.map((n) => ({ ...n, read: true })) }));
+    act(() => markNotificationsRead());
+  };
 
   // Slet-rettighed: admin må alt, ellers kun ejer/creator.
   const kanSlette = (creatorId: string | null | undefined) =>
@@ -129,23 +258,28 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
   function udfoerSlet() {
     if (!sletMaal) return;
     const maal = sletMaal;
+    setSletMaal(null);
+    // Optimistisk: fjern fra træet med det samme + naviger væk.
+    const snapshotNav = nav;
+    if (maal.type === "opgave") {
+      if (panelId === maal.id) setPanelId(null);
+      setData((d) => ({ ...d, kunder: d.kunder.map((k) => ({ ...k, boards: k.boards.map((b) => ({ ...b, grupper: b.grupper.map((g) => ({ ...g, opgaver: g.opgaver.filter((o) => o.id !== maal.id) })) })) })) }));
+    } else if (maal.type === "board") {
+      if (nav.type === "board" && nav.boardId === maal.id) setNav({ type: "dashboard", kundeId: maal.kundeId });
+      setData((d) => ({ ...d, kunder: d.kunder.map((k) => ({ ...k, boards: k.boards.filter((b) => b.id !== maal.id) })) }));
+    } else {
+      if ("kundeId" in nav && nav.kundeId === maal.id) setNav({ type: "forside" });
+      setData((d) => ({ ...d, kunder: d.kunder.filter((k) => k.id !== maal.id), dashboard: d.dashboard.filter((c) => c.id !== maal.id) }));
+    }
     startTransition(async () => {
       const res =
-        maal.type === "opgave"
-          ? await deleteTask(maal.id)
-          : maal.type === "board"
-            ? await deleteBoard(maal.id)
-            : await deleteCustomer(maal.id);
-      router.refresh();
-      setSletMaal(null);
+        maal.type === "opgave" ? await deleteTask(maal.id) : maal.type === "board" ? await deleteBoard(maal.id) : await deleteCustomer(maal.id);
       if (res.ok) {
-        if (maal.type === "opgave" && panelId === maal.id) setPanelId(null);
-        if (maal.type === "board" && nav.type === "board" && nav.boardId === maal.id)
-          setNav({ type: "dashboard", kundeId: maal.kundeId });
-        if (maal.type === "kunde" && "kundeId" in nav && nav.kundeId === maal.id) setNav({ type: "forside" });
         visToast('"' + maal.navn + '" blev slettet.');
       } else {
         visToast(res.reason || "Kunne ikke slette.");
+        setNav(snapshotNav);
+        router.refresh(); // rul den optimistiske sletning tilbage
       }
     });
   }
@@ -478,6 +612,8 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
               </div>
             </div>
 
+            {isPending && <span className="tb-spinner" title="Gemmer…" aria-label="Gemmer" />}
+
             <div style={{ marginLeft: "auto", position: "relative", width: 340 }}>
               <input
                 value={soeg}
@@ -535,7 +671,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                 onClick={() => {
                   const naaAaben = !visNoti;
                   setVisNoti(naaAaben);
-                  if (naaAaben && uleste > 0) act(() => markNotificationsRead());
+                  if (naaAaben && uleste > 0) doMarkNotisRead();
                 }}
                 style={{
                   width: 38,
@@ -850,7 +986,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
           {KUNDE_FARVER.map((c) => (
             <button
               key={c}
-              onClick={() => act(() => setCustomerColor(k.id, c))}
+              onClick={() => doSetCustomerColor(k.id, c)}
               title={c}
               aria-label={"Vælg farve " + c}
               style={{
@@ -1105,7 +1241,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     e.preventDefault();
-                    if (dragRef.current) act(() => moveTask(dragRef.current!, g.id, null));
+                    if (dragRef.current) doMoveTask(dragRef.current, g.id, null);
                     dragRef.current = null;
                   }}
                   style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 0 10px" }}
@@ -1159,7 +1295,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             const v = nyOpgave[g.id] || "";
-                            if (v.trim()) act(() => addTask(g.id, v));
+                            if (v.trim()) doAddTask(g.id, v);
                             setNyOpgave((n) => ({ ...n, [g.id]: "" }));
                           }
                         }}
@@ -1195,7 +1331,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (dragRef.current && dragRef.current !== o.id) act(() => moveTask(dragRef.current!, g.id, o.id));
+          if (dragRef.current && dragRef.current !== o.id) doMoveTask(dragRef.current, g.id, o.id);
           dragRef.current = null;
         }}
       >
@@ -1285,7 +1421,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                     key={x.navn}
                     onClick={() => {
                       setStatusMenu(null);
-                      act(() => setStatus(o.id, x.navn));
+                      doSetStatus(o.id, x.navn);
                     }}
                     style={{
                       display: "block",
@@ -1347,7 +1483,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                     key={x.navn}
                     onClick={() => {
                       setPrioMenu(null);
-                      act(() => setPriority(o.id, x.navn));
+                      doSetPriority(o.id, x.navn);
                     }}
                     style={{
                       display: "block",
@@ -1396,7 +1532,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                 >
                   <div style={{ padding: "0 16px 0 52px", display: "flex", alignItems: "center", gap: 10 }}>
                     <button
-                      onClick={() => act(() => toggleSubtask(u.id))}
+                      onClick={() => doToggleSubtask(o.id, u.id)}
                       style={{
                         width: 16,
                         height: 16,
@@ -1438,7 +1574,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  if (dragRef.current) act(() => setStatus(dragRef.current!, s.navn));
+                  if (dragRef.current) doSetStatus(dragRef.current, s.navn);
                   dragRef.current = null;
                 }}
                 style={{ flex: 1, minWidth: 210, background: "#fff", border: "1px solid #E6E8EC" }}
@@ -1595,7 +1731,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 8 }}>Status</div>
               <select
                 value={o.status}
-                onChange={(e) => act(() => setStatus(o.id, e.target.value))}
+                onChange={(e) => doSetStatus(o.id, e.target.value)}
                 style={{ width: "100%", height: 40, border: 0, fontSize: 13.5, fontWeight: 600, padding: "0 10px", cursor: "pointer", background: s.f, color: s.t }}
               >
                 {STATUS.map((ss) => (
@@ -1609,7 +1745,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 8 }}>Prioritet</div>
               <select
                 value={o.prioritet}
-                onChange={(e) => act(() => setPriority(o.id, e.target.value))}
+                onChange={(e) => doSetPriority(o.id, e.target.value)}
                 style={{ width: "100%", height: 40, border: "1px solid #E1E4E9", fontSize: 13.5, padding: "0 10px", cursor: "pointer", background: "#fff", color: p.f, fontWeight: 600 }}
               >
                 {PRIO.map((pp) => (
@@ -1628,7 +1764,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                     <span key={id} title={bb.navn} style={{ position: "relative", display: "inline-flex" }}>
                       <span style={sx(AV(bb.f, 30))}>{bb.ini}</span>
                       <button
-                        onClick={() => act(() => unassignUser(o.id, id))}
+                        onClick={() => doUnassign(o.id, id)}
                         title={"Fjern " + bb.navn}
                         style={{ position: "absolute", top: -5, right: -5, width: 16, height: 16, lineHeight: 1, fontSize: 11, border: "1px solid #E1E4E9", background: "#fff", color: "#6E6E6E", cursor: "pointer", padding: 0, borderRadius: "50%" }}
                       >
@@ -1651,7 +1787,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                         key={b.id}
                         onClick={() => {
                           setVisAnsvarligMenu(false);
-                          act(() => assignUser(o.id, b.id));
+                          doAssign(o.id, b.id);
                         }}
                         style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", textAlign: "left", background: "transparent", border: 0, borderBottom: "1px solid #F0F1F4", padding: "9px 12px", cursor: "pointer" }}
                       >
@@ -1689,7 +1825,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                 {o.underopgaver.map((u) => (
                   <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <button
-                      onClick={() => act(() => toggleSubtask(u.id))}
+                      onClick={() => doToggleSubtask(o.id, u.id)}
                       style={{
                         width: 18,
                         height: 18,
@@ -1780,7 +1916,7 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
                   onClick={() => {
                     const t = kommentarUdkast.trim();
                     if (!t) return;
-                    act(() => addComment(o.id, t));
+                    doAddComment(o.id, t);
                     setKommentarUdkast("");
                   }}
                   style={{ marginLeft: "auto", background: "#181818", color: "#fff", border: 0, fontSize: 13, fontWeight: 500, padding: "7px 16px", cursor: "pointer" }}
@@ -2027,25 +2163,60 @@ export default function App({ data, initialTaskId }: { data: AppData; initialTas
     const navn = modalVaerdi.trim();
     if (!navn) return;
     const m = modal;
-    startTransition(async () => {
-      if (m.type === "kunde") {
-        const res = await createCustomer(navn, modalFarve);
-        router.refresh();
-        if (res) {
-          setAabneKunder((a) => ({ ...a, [res.kundeId]: true }));
-          setNav({ type: "board", kundeId: res.kundeId, boardId: res.boardId });
-          setVisning("tabel");
+    setModal(null);
+    setModalVaerdi("");
+
+    const tmpGroups = (): GruppeDTO[] => [
+      { id: tmpId(), navn: "Denne uge", farve: "#FF442B", opgaver: [] },
+      { id: tmpId(), navn: "Backlog", farve: "#9E9E9E", opgaver: [] },
+      { id: tmpId(), navn: "Afsluttet", farve: "#16A34A", opgaver: [] },
+    ];
+
+    if (m.type === "kunde") {
+      const kid = tmpId();
+      const bid = tmpId();
+      const kort = navn.slice(0, 2).toUpperCase();
+      const nyKunde: KundeDTO = {
+        id: kid, navn, kort, branche: "Ny kunde", farve: modalFarve, creatorId: mig.id,
+        boards: [{ id: bid, navn: "Onboarding", creatorId: mig.id, grupper: tmpGroups() }],
+      };
+      const nyKort: DashboardKortDTO = {
+        id: kid, navn, kort, farve: modalFarve, boards: 1, opgaver: 0, faerdige: 0, procent: 0, overskredne: 0, foersteBoardId: bid, naeste: [],
+      };
+      setData((d) => ({ ...d, kunder: [...d.kunder, nyKunde], dashboard: [...d.dashboard, nyKort] }));
+      setAabneKunder((a) => ({ ...a, [kid]: true }));
+      setNav({ type: "board", kundeId: kid, boardId: bid });
+      setVisning("tabel");
+      startTransition(async () => {
+        try {
+          const res = await createCustomer(navn, modalFarve);
+          if (res) {
+            setAabneKunder((a) => ({ ...a, [res.kundeId]: true }));
+            setNav({ type: "board", kundeId: res.kundeId, boardId: res.boardId });
+          }
+          router.refresh(); // reconcile med rigtige id'er (bl.a. gruppe-id'er)
+        } catch {
+          visToast("Kunden kunne ikke oprettes.");
+          router.refresh();
         }
-      } else {
-        const res = await createBoard(m.kundeId, navn);
-        router.refresh();
-        if (res) {
-          setNav({ type: "board", kundeId: res.kundeId, boardId: res.boardId });
-          setVisning("tabel");
+      });
+    } else {
+      const kundeId = m.kundeId;
+      const bid = tmpId();
+      const nyBoard: BoardDTO = { id: bid, navn, creatorId: mig.id, grupper: tmpGroups() };
+      setData((d) => ({ ...d, kunder: d.kunder.map((k) => (k.id === kundeId ? { ...k, boards: [...k.boards, nyBoard] } : k)) }));
+      setNav({ type: "board", kundeId, boardId: bid });
+      setVisning("tabel");
+      startTransition(async () => {
+        try {
+          const res = await createBoard(kundeId, navn);
+          if (res) setNav({ type: "board", kundeId: res.kundeId, boardId: res.boardId });
+          router.refresh();
+        } catch {
+          visToast("Boardet kunne ikke oprettes.");
+          router.refresh();
         }
-      }
-      setModal(null);
-      setModalVaerdi("");
-    });
+      });
+    }
   }
 }

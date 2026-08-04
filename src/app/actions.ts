@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin, initialerAf, farveForNavn } from "@/lib/constants";
@@ -98,7 +99,6 @@ export async function setStatus(taskId: string, status: string) {
         ),
     );
   }
-  revalidatePath("/");
 }
 
 /** Skift prioritet. */
@@ -116,7 +116,6 @@ export async function setPriority(taskId: string, priority: string) {
       displayTime: "lige nu",
     },
   });
-  revalidatePath("/");
 }
 
 /** Flyt opgave mellem grupper / omorganisér rækkefølge (tabel-drag). */
@@ -142,7 +141,6 @@ export async function moveTask(taskId: string, targetGroupId: string, beforeId: 
     prisma.task.update({ where: { id: taskId }, data: { groupId: targetGroupId } }),
     ...ids.map((id, i) => prisma.task.update({ where: { id }, data: { position: i } })),
   ]);
-  revalidatePath("/");
 }
 
 /** Tilføj opgave i en gruppe. */
@@ -168,7 +166,7 @@ export async function addTask(groupId: string, navn: string) {
   await prisma.activity.create({
     data: { taskId: task.id, actorId: me.id, text: "Opgave oprettet af " + me.navn, color: "#C4C7CE", displayTime: "lige nu" },
   });
-  revalidatePath("/");
+  return { id: task.id, start: task.startDate, slut: task.endDate };
 }
 
 /** Flueben på underopgave. */
@@ -177,7 +175,6 @@ export async function toggleSubtask(subtaskId: string) {
   const s = await prisma.subtask.findUnique({ where: { id: subtaskId } });
   if (!s) return;
   await prisma.subtask.update({ where: { id: subtaskId }, data: { done: !s.done } });
-  revalidatePath("/");
 }
 
 /** Skriv kommentar (med @mentions → notifikationer + e-mail). */
@@ -195,7 +192,7 @@ export async function addComment(taskId: string, body: string) {
     ? await prisma.user.findMany({ where: { name: { in: navne } }, select: { id: true } })
     : [];
 
-  await prisma.comment.create({
+  const komm = await prisma.comment.create({
     data: {
       taskId,
       authorId: me.id,
@@ -241,7 +238,7 @@ export async function addComment(taskId: string, body: string) {
     );
 
   await Promise.all([...mentionNotis, ...kommentarNotis]);
-  revalidatePath("/");
+  return { id: komm.id };
 }
 
 /** Opret ny kunde med standard-board og tre grupper. */
@@ -276,7 +273,6 @@ export async function createCustomer(navn: string, farve?: string) {
     },
     include: { boards: { include: { groups: true } } },
   });
-  revalidatePath("/");
   return { kundeId: customer.id, boardId: customer.boards[0].id };
 }
 
@@ -301,7 +297,6 @@ export async function createBoard(customerId: string, navn: string) {
       },
     },
   });
-  revalidatePath("/");
   return { kundeId: customerId, boardId: board.id };
 }
 
@@ -310,14 +305,12 @@ export async function setCustomerColor(customerId: string, farve: string) {
   await actor();
   if (!HEX.test(farve)) return;
   await prisma.customer.update({ where: { id: customerId }, data: { color: farve } });
-  revalidatePath("/");
 }
 
 /** Markér den aktuelle brugers notifikationer som læst. */
 export async function markNotificationsRead() {
   const me = await actor();
   await prisma.notification.updateMany({ where: { userId: me.id, read: false }, data: { read: true } });
-  revalidatePath("/");
 }
 
 // ================================================================
@@ -336,7 +329,6 @@ export async function deleteTask(taskId: string): Promise<SletResultat> {
   if (!task) return { ok: false, reason: "Opgaven findes ikke." };
   if (!maaSlette(task.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette denne opgave." };
   await prisma.task.delete({ where: { id: taskId } });
-  revalidatePath("/");
   return { ok: true };
 }
 
@@ -347,7 +339,6 @@ export async function deleteBoard(boardId: string): Promise<SletResultat> {
   if (!board) return { ok: false, reason: "Boardet findes ikke." };
   if (!maaSlette(board.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette dette board." };
   await prisma.board.delete({ where: { id: boardId } });
-  revalidatePath("/");
   return { ok: true };
 }
 
@@ -358,7 +349,6 @@ export async function deleteCustomer(customerId: string): Promise<SletResultat> 
   if (!kunde) return { ok: false, reason: "Kunden findes ikke." };
   if (!maaSlette(kunde.creatorId, me)) return { ok: false, reason: "Du har ikke rettigheder til at slette denne kunde." };
   await prisma.customer.delete({ where: { id: customerId } });
-  revalidatePath("/");
   return { ok: true };
 }
 
@@ -367,7 +357,6 @@ export async function setEmailNotifications(enabled: boolean) {
   const me = await actor();
   await prisma.user.update({ where: { id: me.id }, data: { emailNotifications: enabled } });
   revalidatePath("/indstillinger");
-  revalidatePath("/");
 }
 
 export type TestMailResultat = { ok: boolean; transport: string; from: string; to?: string; error?: string };
@@ -462,10 +451,11 @@ function buildWelcome(navn: string): { subject: string; html: string; text: stri
 export type BrugerResultat = {
   ok: boolean;
   error?: string;
+  mailQueued?: boolean;
   mail?: { ok: boolean; transport: string; to?: string; error?: string };
 };
 
-/** Opret (eller genindbyd) en kollega som bruger — kun admin. Sender velkomstmail. */
+/** Opret (eller genindbyd) en kollega som bruger — kun admin. Velkomstmail sendes out-of-band. */
 export async function createUser(navn: string, email: string): Promise<BrugerResultat> {
   const me = await actor();
   if (!erAdmin(me.role)) return { ok: false, error: "Kun administratorer kan oprette brugere." };
@@ -492,12 +482,17 @@ export async function createUser(navn: string, email: string): Promise<BrugerRes
     },
   });
 
+  // Send velkomstmailen OUT-OF-BAND, så createUser returnerer med det samme.
+  // after() kører efter responsen (via waitUntil på Vercel). Fejl fanges og logges —
+  // en mailfejl må aldrig vælte requesten. Konkrete SMTP-fejl kan ses via 'Send igen'.
   const { subject, html, text } = buildWelcome(rentNavn);
-  const mail = await sendEmailDetailed({ to: rentEmail, subject, html, text });
+  after(async () => {
+    const mail = await sendEmailDetailed({ to: rentEmail, subject, html, text });
+    if (!mail.ok) console.error(`[createUser] velkomstmail til ${rentEmail} fejlede:`, mail.error);
+  });
 
   revalidatePath("/brugere");
-  revalidatePath("/");
-  return { ok: true, mail: { ok: mail.ok, transport: mail.transport, to: rentEmail, error: mail.error } };
+  return { ok: true, mailQueued: true, mail: { ok: true, transport: activeTransport(), to: rentEmail } };
 }
 
 /** Send velkomst-/invitationsmailen igen — kun admin. */
@@ -531,7 +526,6 @@ export async function assignUser(taskId: string, userId: string) {
     taskName: ctx.name,
     customerName: ctx.group?.board?.customer?.name ?? null,
   });
-  revalidatePath("/");
 }
 
 /** Fjern en bruger som ansvarlig på en opgave. */
@@ -544,5 +538,4 @@ export async function unassignUser(taskId: string, userId: string) {
   await prisma.activity.create({
     data: { taskId, actorId: me.id, text: me.navn + " fjernede " + (bruger?.name || "en bruger") + " som ansvarlig", color: "#C4C7CE", displayTime: "lige nu" },
   });
-  revalidatePath("/");
 }

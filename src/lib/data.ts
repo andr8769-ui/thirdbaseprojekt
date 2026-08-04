@@ -2,74 +2,93 @@ import { prisma } from "@/lib/prisma";
 import { IDAG } from "@/lib/constants";
 import type { AppData, KundeDTO, OpgaveDTO, DashboardKortDTO } from "@/lib/types";
 
-// Aggregerer ét dashboard-kort pr. kunde — udelukkende server-side via Prisma
-// (count + findMany med relations-where), aldrig i browseren.
-export async function loadCustomerDashboard(): Promise<DashboardKortDTO[]> {
-  const customers = await prisma.customer.findMany({
-    orderBy: { position: "asc" },
-    include: {
-      _count: { select: { boards: true } },
-      boards: { orderBy: { position: "asc" }, take: 1, select: { id: true } },
-    },
+// Dashboard-kortene beregnes fra det allerede-indlæste datatræ (nul ekstra DB-kald)
+// i stedet for ~23 per-kunde count-queries. Aggregeringen er in-memory over de
+// opgaver vi alligevel henter til appen.
+function beregnDashboard(kunder: KundeDTO[]): DashboardKortDTO[] {
+  return kunder.map((k) => {
+    let opgaver = 0;
+    let faerdige = 0;
+    let overskredne = 0;
+    const aabne: { id: string; navn: string; slut: string | null; boardId: string }[] = [];
+    for (const b of k.boards) {
+      for (const g of b.grupper) {
+        for (const o of g.opgaver) {
+          opgaver++;
+          if (o.status === "Færdig") {
+            faerdige++;
+          } else {
+            if (o.slut && o.slut < IDAG) overskredne++;
+            aabne.push({ id: o.id, navn: o.navn, slut: o.slut, boardId: b.id });
+          }
+        }
+      }
+    }
+    aabne.sort((a, b) => ((a.slut || "￿") < (b.slut || "￿") ? -1 : (a.slut || "￿") > (b.slut || "￿") ? 1 : 0));
+    return {
+      id: k.id,
+      navn: k.navn,
+      kort: k.kort,
+      farve: k.farve,
+      boards: k.boards.length,
+      opgaver,
+      faerdige,
+      procent: opgaver > 0 ? Math.round((faerdige / opgaver) * 100) : 0,
+      overskredne,
+      foersteBoardId: k.boards[0]?.id ?? null,
+      naeste: aabne.slice(0, 3),
+    };
   });
-
-  return Promise.all(
-    customers.map(async (c) => {
-      const where = { group: { board: { customerId: c.id } } };
-      const [opgaver, faerdige, overskredne, naeste] = await Promise.all([
-        prisma.task.count({ where }),
-        prisma.task.count({ where: { ...where, status: "Færdig" } }),
-        prisma.task.count({ where: { ...where, status: { not: "Færdig" }, endDate: { lt: IDAG } } }),
-        prisma.task.findMany({
-          where: { ...where, status: { not: "Færdig" } },
-          orderBy: [{ endDate: "asc" }],
-          take: 3,
-          select: { id: true, name: true, endDate: true, group: { select: { boardId: true } } },
-        }),
-      ]);
-      const procent = opgaver > 0 ? Math.round((faerdige / opgaver) * 100) : 0;
-      return {
-        id: c.id,
-        navn: c.name,
-        kort: c.short,
-        farve: c.color,
-        boards: c._count.boards,
-        opgaver,
-        faerdige,
-        procent,
-        overskredne,
-        foersteBoardId: c.boards[0]?.id ?? null,
-        naeste: naeste.map((t) => ({ id: t.id, navn: t.name, slut: t.endDate, boardId: t.group.boardId })),
-      };
-    }),
-  );
 }
 
-// Loader hele datatræet (brugere, kunder → boards → grupper → opgaver med
-// underopgaver, kommentarer, filer og log) + den aktuelle brugers notifikationer.
+// Loader hele datatræet + den aktuelle brugers notifikationer i tre parallelle
+// queries. Kun de felter UI'et bruger vælges. Dashboard + mig udledes lokalt.
 export async function loadAppData(currentUserId: string): Promise<AppData> {
-  const [users, customers, notifikationer, mig, dashboard] = await Promise.all([
-    prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
+  const [users, customers, notifikationer] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, image: true, initials: true, color: true, role: true, email: true },
+    }),
     prisma.customer.findMany({
       orderBy: { position: "asc" },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        short: true,
+        industry: true,
+        color: true,
+        creatorId: true,
         boards: {
           orderBy: { position: "asc" },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            creatorId: true,
             groups: {
               orderBy: { position: "asc" },
-              include: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
                 tasks: {
                   orderBy: { position: "asc" },
-                  include: {
+                  select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    priority: true,
+                    startDate: true,
+                    endDate: true,
+                    notes: true,
+                    creatorId: true,
                     assignees: { orderBy: { createdAt: "asc" }, select: { id: true } },
-                    subtasks: { orderBy: { position: "asc" } },
-                    files: { orderBy: { id: "asc" } },
+                    subtasks: { orderBy: { position: "asc" }, select: { id: true, name: true, done: true } },
+                    files: { orderBy: { id: "asc" }, select: { name: true, type: true, meta: true } },
                     comments: {
                       orderBy: { createdAt: "asc" },
-                      include: { author: { select: { id: true } } },
+                      select: { id: true, body: true, displayTime: true, authorId: true },
                     },
-                    activities: { orderBy: { createdAt: "desc" } },
+                    activities: { orderBy: { createdAt: "desc" }, select: { text: true, displayTime: true, color: true } },
                   },
                 },
               },
@@ -81,9 +100,8 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
     prisma.notification.findMany({
       where: { userId: currentUserId },
       orderBy: { createdAt: "desc" },
+      select: { id: true, text: true, time: true, color: true, read: true },
     }),
-    prisma.user.findUnique({ where: { id: currentUserId } }),
-    loadCustomerDashboard(),
   ]);
 
   const kunder: KundeDTO[] = customers.map((k) => ({
@@ -113,12 +131,7 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
             noter: t.notes,
             creatorId: t.creatorId,
             underopgaver: t.subtasks.map((s) => ({ id: s.id, navn: s.name, faerdig: s.done })),
-            kommentarer: t.comments.map((c) => ({
-              id: c.id,
-              u: c.author.id,
-              tid: c.displayTime || "lige nu",
-              tekst: c.body,
-            })),
+            kommentarer: t.comments.map((c) => ({ id: c.id, u: c.authorId, tid: c.displayTime || "lige nu", tekst: c.body })),
             filer: t.files.map((f) => ({ navn: f.name, type: f.type, meta: f.meta })),
             log: t.activities.map((a) => ({ tekst: a.text, tid: a.displayTime || "lige nu", farve: a.color })),
           }),
@@ -126,6 +139,8 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
       })),
     })),
   }));
+
+  const migRow = users.find((u) => u.id === currentUserId);
 
   return {
     brugere: users.map((u) => ({
@@ -138,16 +153,10 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
       image: u.image,
     })),
     kunder,
-    notifikationer: notifikationer.map((n) => ({
-      id: n.id,
-      tekst: n.text,
-      tid: n.time,
-      farve: n.color,
-      read: n.read,
-    })),
-    mig: mig
-      ? { id: mig.id, navn: mig.name, rolle: mig.role, ini: mig.initials, f: mig.color, email: mig.email }
+    notifikationer: notifikationer.map((n) => ({ id: n.id, tekst: n.text, tid: n.time, farve: n.color, read: n.read })),
+    mig: migRow
+      ? { id: migRow.id, navn: migRow.name, rolle: migRow.role, ini: migRow.initials, f: migRow.color, email: migRow.email }
       : { id: currentUserId, navn: "Ukendt", rolle: "Medarbejder", ini: "?", f: "#3355FF", email: "" },
-    dashboard,
+    dashboard: beregnDashboard(kunder),
   };
 }

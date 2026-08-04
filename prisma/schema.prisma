@@ -59,6 +59,8 @@ model Board {
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   creator  User?    @relation("BoardCreator", fields: [creatorId], references: [id], onDelete: SetNull)
   groups   Group[]
+
+  @@index([customerId])
 }
 
 model Group {
@@ -70,6 +72,8 @@ model Group {
 
   board Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
   tasks Task[]
+
+  @@index([boardId])
 }
 
 model Task {
@@ -93,6 +97,10 @@ model Task {
   activities    Activity[]
   files         Attachment[]
   notifications Notification[]
+
+  @@index([groupId])
+  @@index([endDate])
+  @@index([status])
 }
 
 model Subtask {
@@ -103,6 +111,8 @@ model Subtask {
   taskId   String
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 model Comment {
@@ -116,6 +126,9 @@ model Comment {
   task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
   author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   mentions User[] @relation("CommentMentions")
+
+  @@index([taskId])
+  @@index([authorId])
 }
 
 model Attachment {
@@ -126,6 +139,8 @@ model Attachment {
   taskId String
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
 }
 
 model Activity {
@@ -139,6 +154,8 @@ model Activity {
 
   task  Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
   actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
 }
 
 model Notification {
@@ -153,4 +170,7 @@ model Notification {
 
   user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([taskId])
 }

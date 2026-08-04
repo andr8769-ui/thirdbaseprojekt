@@ -110,15 +110,15 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
                 <div style={{ border: "1px solid #FFD7CF", background: "#FFF3F0", color: "#B4291A", fontSize: 13, padding: "12px 14px" }}>
                   {resultat.error}
                 </div>
-              ) : resultat.mail?.ok ? (
-                <div style={{ border: "1px solid #BBE7C8", background: "#F0FBF3", color: "#12813C", fontSize: 13, padding: "12px 14px" }}>
-                  Bruger oprettet, og velkomstmail sendt til <strong>{resultat.mail.to}</strong> via{" "}
-                  {TRANSPORT_LABEL[resultat.mail.transport] || resultat.mail.transport}.
+              ) : resultat.mail?.transport === "none" ? (
+                <div style={{ border: "1px solid #FFE0B0", background: "#FFF8EC", color: "#8A5A00", fontSize: 13, padding: "12px 14px" }}>
+                  Bruger oprettet. Ingen mail-transport er konfigureret, så der blev ikke sendt en velkomstmail.
                 </div>
               ) : (
-                <div style={{ border: "1px solid #FFE0B0", background: "#FFF8EC", color: "#8A5A00", fontSize: 13, padding: "12px 14px" }}>
-                  <div style={{ fontWeight: 600 }}>Bruger oprettet — men velkomstmailen kunne ikke sendes.</div>
-                  <div style={{ marginTop: 4, wordBreak: "break-word" }}>{resultat.mail?.error}</div>
+                <div style={{ border: "1px solid #BBE7C8", background: "#F0FBF3", color: "#12813C", fontSize: 13, padding: "12px 14px" }}>
+                  Bruger oprettet. Velkomstmail sendes til <strong>{resultat.mail?.to}</strong> via{" "}
+                  {TRANSPORT_LABEL[resultat.mail?.transport || "none"] || resultat.mail?.transport} i baggrunden.
+                  Brug <strong>Send invitation igen</strong> for at se et konkret leveringsresultat.
                 </div>
               )}
             </div>
