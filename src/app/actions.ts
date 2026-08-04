@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import {
   statusOf,
   prioOf,
+  dtoTekst,
   IDAG,
   MDR,
   KUNDE_FARVER,
@@ -133,6 +134,61 @@ export async function setPriority(taskId: string, priority: string) {
       displayTime: "lige nu",
     },
   });
+}
+
+const DATO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function gyldigDato(d: string): boolean {
+  if (!DATO_RE.test(d)) return false;
+  const t = Date.parse(d);
+  if (Number.isNaN(t)) return false;
+  // Afvis fx 2026-02-30 (rulles ellers over): tjek at komponenterne matcher.
+  return new Date(d).toISOString().slice(0, 10) === d;
+}
+
+/** Ret start-/slutdato på en opgave. null = ingen dato. Samme rettighedsmodel som
+ *  de øvrige felt-mutationer (enhver logget-ind bruger). Ingen e-mail. */
+export async function updateTaskDates(
+  taskId: string,
+  dates: { startDate: string | null; endDate: string | null },
+): Promise<{ ok: boolean; reason?: string }> {
+  const me = await actor();
+  const start = dates.startDate;
+  const end = dates.endDate;
+
+  if (start !== null && !gyldigDato(start)) return { ok: false, reason: "Ugyldig startdato." };
+  if (end !== null && !gyldigDato(end)) return { ok: false, reason: "Ugyldig slutdato." };
+  if (start !== null && end !== null && end < start) {
+    return { ok: false, reason: "Slutdato kan ikke ligge før startdato." };
+  }
+
+  const task = await withDbRetry(
+    () => prisma.task.findUnique({ where: { id: taskId }, select: { id: true, startDate: true, endDate: true } }),
+    "updateTaskDates:read",
+  );
+  if (!task) return { ok: false, reason: "Opgaven findes ikke." };
+
+  const startAendret = (task.startDate ?? null) !== start;
+  const endAendret = (task.endDate ?? null) !== end;
+  if (!startAendret && !endAendret) return { ok: true };
+
+  await withDbRetry(
+    () => prisma.task.update({ where: { id: taskId }, data: { startDate: start, endDate: end } }),
+    "updateTaskDates",
+  );
+
+  const besked = endAendret
+    ? end === null
+      ? "fjernede deadline"
+      : "satte deadline til " + dtoTekst(end)
+    : start === null
+      ? "fjernede startdato"
+      : "ændrede startdato til " + dtoTekst(start);
+  await prisma.activity.create({
+    data: { taskId, actorId: me.id, text: me.navn + " " + besked, color: "#3355FF", displayTime: "lige nu" },
+  });
+
+  return { ok: true };
 }
 
 /** Flyt opgave mellem grupper / omorganisér rækkefølge (tabel-drag). */

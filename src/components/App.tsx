@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { beregnDashboard } from "@/lib/dashboard";
 import type { AppData, OpgaveDTO, GruppeDTO, BoardDTO, KundeDTO, DashboardKortDTO, FilDTO } from "@/lib/types";
 import {
   STATUS,
@@ -26,6 +27,7 @@ import {
 import {
   setStatus,
   setPriority,
+  updateTaskDates,
   moveTask,
   addTask,
   toggleSubtask,
@@ -94,6 +96,12 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [visAnsvarligMenu, setVisAnsvarligMenu] = useState(false);
   const [filDragOver, setFilDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [redigerDeadline, setRedigerDeadline] = useState<string | null>(null);
+  const [datoFejl, setDatoFejl] = useState<string | null>(null);
+  const escRef = useRef(false);
+  useEffect(() => {
+    setDatoFejl(null);
+  }, [panelId]);
   const [statusMenu, setStatusMenu] = useState<string | null>(null);
   const [prioMenu, setPrioMenu] = useState<string | null>(null);
   const [visNoti, setVisNoti] = useState(false);
@@ -259,6 +267,43 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     if (data.notifikationer.every((n) => n.read)) return;
     setData((d) => ({ ...d, notifikationer: d.notifikationer.map((n) => ({ ...n, read: true })) }));
     act(() => markNotificationsRead());
+  };
+
+  // ---- deadlines / datoer ----
+  // Optimistisk: patch opgavens datoer + genberegn forsidens dashboard (overskredne,
+  // næste deadlines) fra træet, så alle afledte visninger opdaterer. mutate ruller
+  // tilbage (router.refresh) hvis server-validering afviser.
+  const doUpdateDates = (taskId: string, startDate: string | null, endDate: string | null) =>
+    mutate(
+      (d) => {
+        const patched = patchTask(d, taskId, { start: startDate, slut: endDate });
+        return { ...patched, dashboard: beregnDashboard(patched.kunder) };
+      },
+      () => updateTaskDates(taskId, { startDate, endDate }),
+      "Datoen kunne ikke gemmes",
+    );
+
+  // Tabel-cellen: kun slutdato ændres.
+  const commitDeadline = (o: OpgaveDTO, value: string) => {
+    setRedigerDeadline(null);
+    const nyEnd = value ? value : null;
+    if ((o.slut ?? null) === nyEnd) return; // uændret
+    if (o.start && nyEnd && nyEnd < o.start) {
+      visToast("Slutdato kan ikke ligge før startdato.");
+      return;
+    }
+    doUpdateDates(o.id, o.start, nyEnd);
+  };
+
+  // Panelet: start + slut med inline fejl.
+  const gemDatoer = (o: OpgaveDTO, startDate: string | null, endDate: string | null) => {
+    if (startDate && endDate && endDate < startDate) {
+      setDatoFejl("Slutdato kan ikke ligge før startdato.");
+      return;
+    }
+    setDatoFejl(null);
+    if ((o.start ?? null) === startDate && (o.slut ?? null) === endDate) return;
+    doUpdateDates(o.id, startDate, endDate);
   };
 
   // ---- filer ----
@@ -1569,7 +1614,41 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
           <div
             style={{ padding: "0 12px", display: "flex", alignItems: "center", fontSize: 13, borderLeft: "1px solid #F0F1F4", color: deadlineFarve(o.status, o.slut) }}
           >
-            {dtoTekst(o.slut)}
+            {redigerDeadline === o.id ? (
+              <input
+                type="date"
+                defaultValue={o.slut || ""}
+                autoFocus
+                onChange={(e) => commitDeadline(o, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    escRef.current = true;
+                    setRedigerDeadline(null);
+                  } else if (e.key === "Enter") {
+                    commitDeadline(o, (e.target as HTMLInputElement).value);
+                  }
+                }}
+                onBlur={(e) => {
+                  if (escRef.current) {
+                    escRef.current = false;
+                    return;
+                  }
+                  commitDeadline(o, e.target.value);
+                }}
+                style={{ width: "100%", border: "1px solid #3355FF", background: "#fff", fontSize: 12.5, padding: "3px 4px", color: "#181818" }}
+              />
+            ) : (
+              <span
+                onClick={() => {
+                  setDatoFejl(null);
+                  setRedigerDeadline(o.id);
+                }}
+                title="Klik for at ændre deadline"
+                style={{ cursor: "pointer" }}
+              >
+                {dtoTekst(o.slut)}
+              </span>
+            )}
           </div>
           <div style={{ padding: "0 12px", display: "flex", alignItems: "center", fontSize: 12, color: "#6E6E6E", borderLeft: "1px solid #F0F1F4" }}>
             {dtoTekst(o.start) + " – " + dtoTekst(o.slut)}
@@ -1868,7 +1947,24 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             </div>
             <div>
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 8 }}>Tidslinje</div>
-              <div style={{ fontSize: 14, color: deadlineFarve(o.status, o.slut) }}>{dtoTekst(o.start) + " – " + dtoTekst(o.slut)}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="date"
+                  value={o.start || ""}
+                  onChange={(e) => gemDatoer(o, e.target.value || null, o.slut)}
+                  title="Startdato"
+                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
+                />
+                <span style={{ color: "#9E9E9E" }}>–</span>
+                <input
+                  type="date"
+                  value={o.slut || ""}
+                  onChange={(e) => gemDatoer(o, o.start, e.target.value || null)}
+                  title="Slutdato (deadline)"
+                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
+                />
+              </div>
+              {datoFejl && <div style={{ fontSize: 12, color: "#B4291A", marginTop: 6 }}>{datoFejl}</div>}
             </div>
           </div>
 
