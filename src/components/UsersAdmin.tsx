@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createUser, resendInvite, type BrugerResultat } from "@/app/actions";
+import { createUser, resendInvite, deleteUser, type BrugerResultat } from "@/app/actions";
 
 type Row = {
   id: string;
@@ -12,17 +12,23 @@ type Row = {
   status: "Aktiv" | "Inviteret";
   tidspunkt: string;
   sidsteLogin: string | null;
+  opgaver: number;
 };
 
 const TRANSPORT_LABEL: Record<string, string> = { resend: "Resend", smtp: "SMTP", none: "ingen transport" };
 
-export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
+const KOLONNER = "minmax(150px,1.3fr) minmax(170px,1.5fr) 110px 100px 140px 190px";
+
+export default function UsersAdmin({ brugere, megId }: { brugere: Row[]; megId: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [navn, setNavn] = useState("");
   const [email, setEmail] = useState("");
   const [resultat, setResultat] = useState<BrugerResultat | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, { ok: boolean; tekst: string }>>({});
+  // Bruger der er valgt til fjernelse (viser bekræftelsesdialog), og evt. fejl.
+  const [fjern, setFjern] = useState<Row | null>(null);
+  const [fjernFejl, setFjernFejl] = useState<string | null>(null);
 
   function opret() {
     setResultat(null);
@@ -47,6 +53,21 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
           : `Mail fejlede: ${res.mail?.error || "ukendt fejl"}`
         : res.error || "Kunne ikke sende.";
       setRowMsg((m) => ({ ...m, [r.id]: { ok: !!(res.ok && res.mail?.ok), tekst } }));
+    });
+  }
+
+  function bekraeftFjern() {
+    if (!fjern) return;
+    const id = fjern.id;
+    setFjernFejl(null);
+    start(async () => {
+      const res = await deleteUser(id);
+      if (res.ok) {
+        setFjern(null);
+        router.refresh();
+      } else {
+        setFjernFejl(res.reason || "Kunne ikke fjerne brugeren.");
+      }
     });
   }
 
@@ -130,7 +151,7 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(160px,1.4fr) minmax(180px,1.6fr) 120px 110px 150px 150px",
+              gridTemplateColumns: KOLONNER,
               borderBottom: "1px solid #F0F1F4",
               fontSize: 11,
               letterSpacing: "0.06em",
@@ -151,13 +172,16 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "minmax(160px,1.4fr) minmax(180px,1.6fr) 120px 110px 150px 150px",
+                  gridTemplateColumns: KOLONNER,
                   alignItems: "center",
                   borderBottom: "1px solid #F5F6F8",
                   minHeight: 52,
                 }}
               >
-                <div style={{ padding: "8px 16px", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.navn}</div>
+                <div style={{ padding: "8px 16px", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {r.navn}
+                  {r.id === megId && <span style={{ marginLeft: 8, fontSize: 11, color: "#9E9E9E" }}>(dig)</span>}
+                </div>
                 <div style={{ padding: "8px 12px", fontSize: 13, color: "#4A4A4A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.email}</div>
                 <div style={{ padding: "8px 12px", fontSize: 13, color: "#4A4A4A" }}>{r.rolle}</div>
                 <div style={{ padding: "8px 12px" }}>
@@ -174,7 +198,7 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
                   </span>
                 </div>
                 <div style={{ padding: "8px 12px", fontSize: 13, color: "#6E6E6E" }}>{r.tidspunkt}</div>
-                <div style={{ padding: "8px 16px" }}>
+                <div style={{ padding: "8px 16px", display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     onClick={() => genudsend(r)}
                     disabled={pending}
@@ -182,6 +206,19 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
                   >
                     Send invitation igen
                   </button>
+                  {/* Fjern vises aldrig på én selv. Siden er allerede admin-gated. */}
+                  {r.id !== megId && (
+                    <button
+                      onClick={() => {
+                        setFjernFejl(null);
+                        setFjern(r);
+                      }}
+                      disabled={pending}
+                      style={{ height: 32, border: "1px solid #F3C9C2", background: "#fff", fontSize: 12.5, padding: "0 10px", cursor: pending ? "wait" : "pointer", color: "#B4291A" }}
+                    >
+                      Fjern
+                    </button>
+                  )}
                 </div>
               </div>
               {rowMsg[r.id] && (
@@ -200,6 +237,61 @@ export default function UsersAdmin({ brugere }: { brugere: Row[] }) {
           ))}
         </div>
       </div>
+
+      {/* Bekræftelsesdialog for fjernelse */}
+      {fjern && (
+        <div
+          onClick={() => !pending && setFjern(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(24,24,24,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: "#fff", border: "1px solid #E6E8EC", width: "100%", maxWidth: 460, padding: 28 }}
+          >
+            <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em" }}>Fjern bruger</div>
+            <div style={{ fontSize: 14, lineHeight: 1.6, color: "#4A4A4A", marginTop: 14 }}>
+              Du er ved at fjerne <strong>{fjern.navn}</strong> ({fjern.email}) fra thirdbase Projektstyring.
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.6, color: "#4A4A4A", marginTop: 12 }}>
+              {fjern.opgaver === 0 ? (
+                <>Brugeren er ikke ansvarlig på nogen opgaver.</>
+              ) : (
+                <>
+                  Brugeren er ansvarlig på <strong>{fjern.opgaver}</strong> {fjern.opgaver === 1 ? "opgave" : "opgaver"}.
+                  Opgaverne bliver bevaret, men brugeren fjernes som ansvarlig på dem.
+                </>
+              )}{" "}
+              Kommentarer, filer og aktivitetslog bevares og viser navnet som historik.
+            </div>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#B4291A", marginTop: 12 }}>
+              Handlingen kan ikke fortrydes.
+            </div>
+
+            {fjernFejl && (
+              <div style={{ marginTop: 14, border: "1px solid #FFD7CF", background: "#FFF3F0", color: "#B4291A", fontSize: 13, padding: "10px 12px" }}>
+                {fjernFejl}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 22 }}>
+              <button
+                onClick={() => setFjern(null)}
+                disabled={pending}
+                style={{ height: 40, padding: "0 16px", border: "1px solid #E1E4E9", background: "#fff", fontSize: 14, fontWeight: 500, cursor: pending ? "wait" : "pointer", color: "#4A4A4A" }}
+              >
+                Annullér
+              </button>
+              <button
+                onClick={bekraeftFjern}
+                disabled={pending}
+                style={{ height: 40, padding: "0 18px", border: 0, background: "#FF442B", color: "#fff", fontSize: 14, fontWeight: 600, cursor: pending ? "wait" : "pointer" }}
+              >
+                {pending ? "Fjerner…" : "Fjern bruger"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

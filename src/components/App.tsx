@@ -16,6 +16,7 @@ import {
   statusOf,
   prioOf,
   erAdmin,
+  initialerAf,
   KUNDE_FARVER,
   IDAG,
   readableSize,
@@ -220,7 +221,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       () => setCustomerColor(kundeId, farve),
     );
   const doAddComment = (taskId: string, tekst: string) => {
-    const temp = { id: tmpId(), u: mig.id, tid: "lige nu", tekst };
+    const temp = { id: tmpId(), u: mig.id, navn: mig.navn, tid: "lige nu", tekst };
     mutate((d) => patchTask(d, taskId, { kommentarer: [...(findTaskIn(d, taskId)?.kommentarer || []), temp] }), () => addComment(taskId, tekst));
   };
   const doAddTask = (groupId: string, navn: string) => {
@@ -2095,14 +2096,18 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginBottom: 14 }}>Kommentarer</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               {o.kommentarer.map((c) => {
-                const bb = bruger(c.u);
+                // Levende forfatter → farve + initialer fra brugeren. Slettet forfatter
+                // (c.u === null) → neutral grå + initialer af det historiske navn.
+                const bb = c.u ? data.brugere.find((b) => b.id === c.u) : null;
+                const kFarve = bb?.f ?? "#9E9E9E";
+                const kIni = bb?.ini ?? initialerAf(c.navn);
                 const dele = c.tekst.split(/(@[A-ZÆØÅ][a-zæøå]+ [A-ZÆØÅ][a-zæøå]+)/g);
                 return (
                   <div key={c.id} style={{ display: "flex", gap: 12 }}>
-                    <div style={sx(AV(bb.f, 30))}>{bb.ini}</div>
+                    <div style={sx(AV(kFarve, 30))}>{kIni}</div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>{bb.navn}</span>
+                        <span style={{ fontSize: 13, fontWeight: 600 }}>{c.navn}</span>
                         <span style={{ fontSize: 11, color: "#9E9E9E" }}>{c.tid}</span>
                       </div>
                       <div style={{ fontSize: 14, lineHeight: 1.55, color: "#4A4A4A", marginTop: 4, textWrap: "pretty" }}>

@@ -49,11 +49,11 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
                     // VIGTIGT: 'data'-kolonnen (filens bytes) hentes ALDRIG her — kun metadata.
                     files: {
                       orderBy: { createdAt: "asc" },
-                      select: { id: true, name: true, type: true, meta: true, size: true, mime: true, uploadedById: true, createdAt: true },
+                      select: { id: true, name: true, type: true, meta: true, size: true, mime: true, uploadedById: true, uploaderName: true, createdAt: true },
                     },
                     comments: {
                       orderBy: { createdAt: "asc" },
-                      select: { id: true, body: true, displayTime: true, authorId: true },
+                      select: { id: true, body: true, displayTime: true, authorId: true, authorName: true },
                     },
                     activities: { orderBy: { createdAt: "desc" }, select: { text: true, displayTime: true, color: true } },
                   },
@@ -100,12 +100,21 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
             noter: t.notes,
             creatorId: t.creatorId,
             underopgaver: t.subtasks.map((s) => ({ id: s.id, navn: s.name, faerdig: s.done })),
-            kommentarer: t.comments.map((c) => ({ id: c.id, u: c.authorId, tid: c.displayTime || "lige nu", tekst: c.body })),
+            kommentarer: t.comments.map((c) => ({
+              id: c.id,
+              u: c.authorId,
+              // Levende navn hvis forfatteren stadig findes; ellers det historiske navn.
+              navn: (c.authorId ? brugerNavn.get(c.authorId) : null) ?? c.authorName ?? "Tidligere bruger",
+              tid: c.displayTime || "lige nu",
+              tekst: c.body,
+            })),
             filer: t.files.map((f): FilDTO => {
               const harData = f.size != null;
               const dato = f.createdAt ? `${f.createdAt.getDate()}. ${MDR[f.createdAt.getMonth()]}` : "";
+              // Levende navn hvis uploaderen stadig findes; ellers det historiske navn.
+              const uploaderNavn = (f.uploadedById ? brugerNavn.get(f.uploadedById) : null) ?? f.uploaderName ?? "Ukendt";
               const meta = harData
-                ? [brugerNavn.get(f.uploadedById || "") || "Ukendt", readableSize(f.size!), dato].filter(Boolean).join(" · ")
+                ? [uploaderNavn, readableSize(f.size!), dato].filter(Boolean).join(" · ")
                 : f.meta;
               return { id: f.id, navn: f.name, type: f.type, meta, harData, uploaderId: f.uploadedById, bytes: f.size };
             }),

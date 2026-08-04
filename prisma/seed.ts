@@ -21,12 +21,11 @@ const PRIO = [
   { navn: "Lav", f: "#9E9E9E" },
 ];
 
-const BRUGERE = [
-  { key: "u1", navn: "Mette Kragh", rolle: "Head of Growth", ini: "MK", f: "#FF442B", email: "mette@thirdbase.dk" },
-  { key: "u2", navn: "Jonas Bech", rolle: "Performance Marketing Manager", ini: "JB", f: "#3355FF", email: "jonas@thirdbase.dk" },
-  { key: "u3", navn: "Sofie Lind", rolle: "Content Strategist", ini: "SL", f: "#181818", email: "sofie@thirdbase.dk" },
-  { key: "u4", navn: "Anders Hovmand", rolle: "CRM Konsulent", ini: "AH", f: "#FF8A65", email: "anders@thirdbase.dk" },
-];
+// Ingen demo-/mockdata-brugere længere. De rigtige brugere oprettes via Google-login
+// (eller admin på /brugere). Kunder, boards og opgaver seedes stadig som demodata,
+// men uden ansvarlige, kommentarer og notifikationer — dem kan der ikke være uden
+// rigtige brugere. 'key' bevares i opgavedataen, men resolver bare til ingenting.
+const BRUGERE: { key: string; navn: string; rolle: string; ini: string; f: string; email: string }[] = [];
 
 function T(navn: string, a: string[], s: number, p: number, start: string, slut: string, noter: string, subs?: string[]) {
   return { navn, a, s, p, start, slut, noter, subs: subs || [] };
@@ -147,37 +146,16 @@ const KUNDER = [
   },
 ];
 
-const KOMMENTARER = [
-  [{ u: "u1", tid: "i går kl. 14.22", tekst: "@Anders Hovmand kan du tjekke om felterne matcher det vi aftalte på kickoff? Vi skal kunne vise det fredag." }, { u: "u4", tid: "i dag kl. 08.41", tekst: "Ja. Mangler stadig svar på to felter fra deres IT, resten er mappet." }],
-  [{ u: "u2", tid: "mandag kl. 11.05", tekst: "Første udkast ligger klar. @Sofie Lind vil du kigge teksten igennem inden vi sender til kunden?" }],
-  [{ u: "u3", tid: "i dag kl. 09.12", tekst: "Kunden har bedt om en ekstra runde. Jeg rykker deadline til på fredag." }],
-];
+// Attrap-filer pr. opgave (uden gemte bytes). Ingen personnavne i metateksten —
+// uploaderen er ukendt indtil en rigtig bruger lægger en fil op i appen.
 const FILER = [
-  [{ navn: "leadscoring-model-v3.xlsx", type: "XLSX", meta: "Anders Hovmand · 1,4 MB" }, { navn: "feltmapping-dms.pdf", type: "PDF", meta: "Mette Kragh · 320 KB" }],
-  [{ navn: "annoncetekster-august.docx", type: "DOCX", meta: "Sofie Lind · 88 KB" }],
-  [{ navn: "rapport-juli.pdf", type: "PDF", meta: "Mette Kragh · 2,1 MB" }],
+  [{ navn: "leadscoring-model-v3.xlsx", type: "XLSX", meta: "1,4 MB" }, { navn: "feltmapping-dms.pdf", type: "PDF", meta: "320 KB" }],
+  [{ navn: "annoncetekster-august.docx", type: "DOCX", meta: "88 KB" }],
+  [{ navn: "rapport-juli.pdf", type: "PDF", meta: "2,1 MB" }],
 ];
 
 // Pæne default-farver pr. virksomhed (styrer dashboard-kortenes accent).
 const KUNDE_FARVER = ["#FF442B", "#3355FF", "#7B61FF"];
-
-const NOTIFIKATIONER = [
-  { text: 'Sofie Lind nævnte dig i "Kalender for august godkendes af kunden"', time: "for 12 minutter siden", color: "#FF442B" },
-  { text: 'Du blev tildelt "Outbound-sekvens til indkøbschefer" hos Bregnholt Industri', time: "for 1 time siden", color: "#3355FF" },
-  { text: 'Jonas Bech ændrede status til Klar til review på "Rapport for juli sendes til kunden"', time: "i dag kl. 08.30", color: "#7B61FF" },
-  { text: 'Deadline overskredet: "Adgange til Google Ads og Meta Business"', time: "i går kl. 23.59", color: "#FF442B" },
-];
-
-function mentionIds(tekst: string, byName: Map<string, string>): string[] {
-  const ids: string[] = [];
-  const re = /@([A-ZÆØÅ][a-zæøå]+ [A-ZÆØÅ][a-zæøå]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(tekst))) {
-    const id = byName.get(m[1]);
-    if (id && ids.indexOf(id) < 0) ids.push(id);
-  }
-  return ids;
-}
 
 async function main() {
   // Idempotent: seed kun hvis databasen er tom, så senere data aldrig overskrives.
@@ -235,8 +213,8 @@ async function main() {
           const o = g.opgaver[oi];
           tid++;
 
+          // Uden seed-brugere resolver alle keys til ingenting → opgaven er uassigneret.
           const assigneeIds = o.a.map((key) => userIdByKey.get(key)!).filter(Boolean);
-          const komSet = (KOMMENTARER[tid % 3] || []).slice(0, tid % 4 === 0 ? 1 : 2);
           const filSet = tid % 3 === 0 ? FILER[tid % 3] : tid % 4 === 0 ? FILER[1] : [];
 
           const task = await prisma.task.create({
@@ -258,24 +236,12 @@ async function main() {
             },
           });
 
-          // Kommentarer (med @mentions)
-          for (const c of komSet) {
-            const authorId = userIdByKey.get(c.u)!;
-            const mIds = mentionIds(c.tekst, userIdByName);
-            await prisma.comment.create({
-              data: {
-                body: c.tekst,
-                displayTime: c.tid,
-                taskId: task.id,
-                authorId,
-                mentions: { connect: mIds.map((id) => ({ id })) },
-              },
-            });
-          }
+          // Ingen seed-kommentarer — de kræver rigtige forfattere.
 
           // Aktivitetslog — nyeste øverst (created øverst som i prototypen).
+          // Neutral tekst uden personnavne (ingen actor på seedet demodata).
           const logEntries = [
-            { text: "Opgave oprettet af Mette Kragh", displayTime: "14. jul. kl. 10.02", color: "#C4C7CE" },
+            { text: "Opgave oprettet", displayTime: "14. jul. kl. 10.02", color: "#C4C7CE" },
             { text: "Status ændret til " + STATUS[o.s].navn, displayTime: "29. jul. kl. 15.48", color: STATUS[o.s].f },
             { text: "Deadline sat til " + o.slut, displayTime: "30. jul. kl. 09.11", color: "#3355FF" },
           ];
@@ -287,7 +253,7 @@ async function main() {
                 color: e.color,
                 displayTime: e.displayTime,
                 taskId: task.id,
-                actorId: userIdByName.get("Mette Kragh") || null,
+                actorId: null,
                 // Bevar visningsrækkefølgen (created øverst) ved desc-sortering.
                 createdAt: new Date(base - li * 60000),
               },
@@ -298,16 +264,7 @@ async function main() {
     }
   }
 
-  console.log("Opretter notifikationer for teamet …");
-  for (const b of BRUGERE) {
-    const userId = userIdByKey.get(b.key)!;
-    for (let i = 0; i < NOTIFIKATIONER.length; i++) {
-      const n = NOTIFIKATIONER[i];
-      await prisma.notification.create({
-        data: { text: n.text, time: n.time, color: n.color, userId, createdAt: new Date(base - i * 60000) },
-      });
-    }
-  }
+  // Ingen seed-notifikationer — de kræver rigtige modtagere.
 
   const antal = await prisma.task.count();
   console.log(`Færdig. ${antal} opgaver oprettet.`);

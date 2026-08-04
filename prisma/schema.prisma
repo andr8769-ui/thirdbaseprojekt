@@ -122,10 +122,11 @@ model Comment {
   displayTime String? // menneskeligt tidsstempel fra seed ("i går kl. 14.22")
   createdAt   DateTime @default(now())
   taskId      String
-  authorId    String
+  authorId    String?
+  authorName  String? // historisk navn — bevares når forfatteren slettes
 
   task     Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author   User?  @relation(fields: [authorId], references: [id], onDelete: SetNull)
   mentions User[] @relation("CommentMentions")
 
   @@index([taskId])
@@ -142,6 +143,7 @@ model Attachment {
   size         Int? // bytes; null = gammel attrap-række uden fil
   mime         String?
   uploadedById String?
+  uploaderName String? // historisk navn — bevares når uploaderen slettes
   createdAt    DateTime @default(now())
 
   task     Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)

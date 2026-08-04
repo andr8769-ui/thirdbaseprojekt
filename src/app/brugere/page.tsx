@@ -26,7 +26,17 @@ export default async function BrugerePage() {
     () =>
       prisma.user.findMany({
         orderBy: [{ createdAt: "asc" }],
-        select: { id: true, name: true, email: true, role: true, invitedAt: true, lastLoginAt: true, createdAt: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          invitedAt: true,
+          lastLoginAt: true,
+          createdAt: true,
+          // Antal opgaver brugeren er ansvarlig på — vises i fjern-dialogen.
+          _count: { select: { assignedTasks: true } },
+        },
       }),
     "brugere:list",
   );
@@ -39,7 +49,8 @@ export default async function BrugerePage() {
     status: u.lastLoginAt ? ("Aktiv" as const) : ("Inviteret" as const),
     tidspunkt: fmt(u.invitedAt ?? u.createdAt),
     sidsteLogin: u.lastLoginAt ? fmt(u.lastLoginAt) : null,
+    opgaver: u._count.assignedTasks,
   }));
 
-  return <UsersAdmin brugere={rows} />;
+  return <UsersAdmin brugere={rows} megId={session.user.id} />;
 }

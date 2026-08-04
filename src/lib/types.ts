@@ -13,7 +13,9 @@ export type BrugerDTO = {
 
 export type UnderopgaveDTO = { id: string; navn: string; faerdig: boolean };
 
-export type KommentarDTO = { id: string; u: string; tid: string; tekst: string };
+// u = forfatterens id (null hvis forfatteren er slettet). navn = visningsnavn,
+// levende hvis forfatteren findes, ellers historisk tekst ("Tidligere bruger").
+export type KommentarDTO = { id: string; u: string | null; navn: string; tid: string; tekst: string };
 
 export type FilDTO = {
   id: string;

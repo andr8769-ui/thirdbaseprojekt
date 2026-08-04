@@ -269,6 +269,7 @@ export async function addComment(taskId: string, body: string) {
     data: {
       taskId,
       authorId: me.id,
+      authorName: me.navn, // historisk navn — bevares hvis forfatteren senere slettes
       body: tekst,
       displayTime: "lige nu",
       mentions: { connect: naevnte.map((u) => ({ id: u.id })) },
@@ -461,6 +462,7 @@ export async function uploadAttachment(formData: FormData): Promise<{ ok: boolea
       size: file.size,
       mime: file.type || null,
       uploadedById: me.id,
+      uploaderName: me.navn, // historisk navn — bevares hvis uploaderen senere slettes
     },
     select: { id: true, createdAt: true },
   });
@@ -656,6 +658,43 @@ export async function resendInvite(userId: string): Promise<BrugerResultat> {
   const { subject, html, text } = buildWelcome(u.name);
   const mail = await sendEmailDetailed({ to: u.email, subject, html, text });
   return { ok: true, mail: { ok: mail.ok, transport: mail.transport, to: u.email, error: mail.error } };
+}
+
+/**
+ * Fjern en bruger — kun admin, og aldrig én selv.
+ * Opgaverne BLIVER: brugeren afassignes bare. Kommentarer, filer og aktivitetslog
+ * bevares — navnet denormaliseres til historisk tekst FØR sletningen, så SetNull-
+ * relationerne ikke efterlader en tom forfatter/uploader. Ingen e-mail, ingen
+ * revalidatePath('/') (perf). Kun /brugere revalideres.
+ */
+export async function deleteUser(userId: string): Promise<SletResultat> {
+  const me = await actor();
+  if (!erAdmin(me.role)) return { ok: false, reason: "Kun administratorer kan fjerne brugere." };
+  if (userId === me.id) return { ok: false, reason: "Du kan ikke fjerne dig selv." };
+
+  const bruger = await withDbRetry(
+    () => prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true } }),
+    "deleteUser:read",
+  );
+  if (!bruger) return { ok: false, reason: "Brugeren findes ikke." };
+
+  await withDbRetry(
+    () =>
+      prisma.$transaction([
+        // Bevar navnet som historisk tekst (kun hvor det ikke allerede er sat).
+        prisma.comment.updateMany({ where: { authorId: userId, authorName: null }, data: { authorName: bruger.name } }),
+        prisma.attachment.updateMany({ where: { uploadedById: userId, uploaderName: null }, data: { uploaderName: bruger.name } }),
+        // Afassign fra alle opgaver — opgaverne selv røres ikke.
+        prisma.user.update({ where: { id: userId }, data: { assignedTasks: { set: [] } } }),
+        // Slet brugeren. Comment.author/Attachment.uploader/Activity.actor/Task.creator
+        // er alle SetNull, så intet indhold slettes med.
+        prisma.user.delete({ where: { id: userId } }),
+      ]),
+    "deleteUser",
+  );
+
+  revalidatePath("/brugere");
+  return { ok: true };
 }
 
 /** Tildel en bruger som ansvarlig på en opgave (notifikation + mail). */
