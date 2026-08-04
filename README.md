@@ -103,6 +103,37 @@ Ingen hemmeligheder ligger i repoet — `.env` er git-ignoreret. Se `.env.exampl
 
 ---
 
+## E-mail-notifikationer
+
+Vælg **én** backend (ellers sendes ingen mails — in-app-notifikationer virker altid):
+
+- **Resend** (foretrukket): sæt `RESEND_API_KEY`.
+- **SMTP** (Gmail / Google Workspace): sæt `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`.
+
+### Gmail / Google Workspace
+
+1. Slå **2-trinsbekræftelse** til på kontoen: <https://myaccount.google.com/security>.
+2. Opret et **app-password**: <https://myaccount.google.com/apppasswords> — brug det som `SMTP_PASS`
+   (ikke din almindelige adgangskode).
+3. Sæt:
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465            # 465 = secure (implicit TLS)
+   SMTP_USER=andreas@thirdbase.dk
+   SMTP_PASS=<app-password>
+   EMAIL_FROM=thirdbase Projektstyring <andreas@thirdbase.dk>
+   ```
+4. Gmail **overskriver** afsenderen, hvis From-adressen ikke matcher `SMTP_USER`. Appen bruger derfor
+   automatisk `SMTP_USER` som afsenderadresse og beholder blot visningsnavnet fra `EMAIL_FROM`.
+
+### Test
+
+Admins har på **/indstillinger** en knap **'Send testmail til mig selv'**, der viser den aktive
+transport (Resend / SMTP / ingen), afsenderadressen og enten succes eller den konkrete
+transport-fejl (fx forkert app-password eller blokeret SMTP) — nyttigt til fejlfinding.
+
+---
+
 ## Google Cloud Console — opsætning
 
 Opret et OAuth 2.0 **Client ID** (type: *Web application*) under

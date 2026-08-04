@@ -5,6 +5,7 @@ import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { statusOf, prioOf, IDAG, KUNDE_FARVER, erAdmin } from "@/lib/constants";
 import { createNotification } from "@/lib/notifications";
+import { sendEmailDetailed, activeTransport, effectiveFrom } from "@/lib/email";
 
 /** Log ud. */
 export async function logout() {
@@ -367,4 +368,41 @@ export async function setEmailNotifications(enabled: boolean) {
   await prisma.user.update({ where: { id: me.id }, data: { emailNotifications: enabled } });
   revalidatePath("/indstillinger");
   revalidatePath("/");
+}
+
+export type TestMailResultat = { ok: boolean; transport: string; from: string; to?: string; error?: string };
+
+/** Send en testmail til brugeren selv (kun admin) — til fejlfinding af mail-transporten. */
+export async function sendTestEmail(): Promise<TestMailResultat> {
+  const me = await actor();
+  const transport = activeTransport();
+  const from = effectiveFrom();
+  if (!erAdmin(me.role)) {
+    return { ok: false, transport, from, error: "Kun administratorer kan sende testmail." };
+  }
+  const bruger = await prisma.user.findUnique({ where: { id: me.id }, select: { email: true, name: true } });
+  if (!bruger?.email) {
+    return { ok: false, transport, from, error: "Din bruger har ingen e-mailadresse." };
+  }
+  const fornavn = (bruger.name || "").split(" ")[0] || "der";
+  const html = `<!doctype html><html lang="da"><body style="margin:0;background:#F7F8F9;font-family:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;color:#181818;">
+    <div style="max-width:520px;margin:0 auto;padding:32px 20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+        <span style="display:inline-block;width:12px;height:12px;background:#FF442B;transform:rotate(45deg);"></span>
+        <span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;">thirdbase</span>
+        <span style="font-size:12px;color:#9E9E9E;">· Projektstyring</span>
+      </div>
+      <div style="background:#fff;border:1px solid #E6E8EC;padding:28px;">
+        <div style="font-size:19px;font-weight:600;">Testmail modtaget 🎉</div>
+        <div style="margin-top:14px;font-size:14px;line-height:1.7;color:#4A4A4A;">
+          Hej ${fornavn}. Hvis du kan læse denne mail, virker e-mail-notifikationer i thirdbase Projektstyring.
+          Transport: <strong>${transport}</strong> · Afsender: <strong>${from}</strong>
+        </div>
+      </div>
+    </div>
+  </body></html>`;
+  const text = `Hej ${fornavn}\n\nDette er en testmail fra thirdbase Projektstyring.\nHvis du kan læse den, virker e-mail-notifikationer.\n\nTransport: ${transport}\nAfsender: ${from}`;
+
+  const res = await sendEmailDetailed({ to: bruger.email, subject: "Testmail fra thirdbase Projektstyring", html, text });
+  return { ok: res.ok, transport: res.transport, from: res.from, to: bruger.email, error: res.error };
 }
