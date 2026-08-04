@@ -120,6 +120,24 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [udfoldet, setUdfoldet] = useState<Record<string, boolean>>({});
   const [foldet, setFoldet] = useState<Record<string, boolean>>({});
 
+  // Mobil off-canvas drawer (kun < 768px; burgeren er display:none på desktop, så
+  // denne state ændres aldrig på desktop → desktop-layoutet er 100% uberørt).
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    // Lås body-scroll mens draweren er åben.
+    const forrige = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = forrige;
+    };
+  }, [drawerOpen]);
+
   const dragRef = useRef<string | null>(null);
   const mig = data.mig;
 
@@ -463,10 +481,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
 
   return (
     <div style={{ height: "100vh", width: "100%", overflow: "hidden", background: "#F7F8F9", color: "#181818" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "264px 1fr", height: "100vh" }}>
+      <div className="tb-shell" style={{ display: "grid", gridTemplateColumns: "264px 1fr", height: "100vh" }}>
         {/* ---------------- SIDEBAR ---------------- */}
         <div
-          className="tb-scroll"
+          className={"tb-scroll tb-sidebar" + (drawerOpen ? " open" : "")}
           style={{ background: "#181818", color: "#F7F8F9", display: "flex", flexDirection: "column", overflowY: "auto" }}
         >
           <div style={{ padding: "20px 18px 16px", display: "flex", alignItems: "center", gap: 10 }}>
@@ -479,7 +497,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: "-0.01em" }}>thirdbase</span>
           </div>
 
-          <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+          <div
+            onClick={() => setDrawerOpen(false)}
+            style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 2 }}
+          >
             <button
               onClick={() => {
                 setNav({ type: "forside" });
@@ -586,6 +607,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                         onClick={() => {
                           setNav({ type: "dashboard", kundeId: k.id });
                           setPanelId(null);
+                          setDrawerOpen(false);
                         }}
                         style={{
                           textAlign: "left",
@@ -608,6 +630,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                               setNav({ type: "board", kundeId: k.id, boardId: b.id });
                               setPanelId(null);
                               setVisning("tabel");
+                              setDrawerOpen(false);
                             }}
                             style={{
                               textAlign: "left",
@@ -684,10 +707,18 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
           </div>
         </div>
 
+        {/* Mørk backdrop bag draweren — kun synlig på mobil når draweren er åben. */}
+        <div
+          className={"tb-drawer-overlay" + (drawerOpen ? " open" : "")}
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden="true"
+        />
+
         {/* ---------------- MAIN ---------------- */}
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, height: "100vh" }}>
           {/* Topbar */}
           <div
+            className="tb-topbar"
             style={{
               height: 64,
               flex: "none",
@@ -701,6 +732,20 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               zIndex: 40,
             }}
           >
+            {/* Burger — kun synlig < 768px (display:none på desktop via CSS). */}
+            <button
+              className="tb-burger"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Åbn menu"
+              title="Menu"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                <rect x="2" y="4" width="16" height="2" fill="#181818" />
+                <rect x="2" y="9" width="16" height="2" fill="#181818" />
+                <rect x="2" y="14" width="16" height="2" fill="#181818" />
+              </svg>
+            </button>
+
             <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>
                 {topEyebrow}
@@ -721,7 +766,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
 
             {isPending && <span className="tb-spinner" title="Gemmer…" aria-label="Gemmer" />}
 
-            <div style={{ marginLeft: "auto", position: "relative", width: 340 }}>
+            <div className="tb-search" style={{ marginLeft: "auto", position: "relative", width: 340 }}>
               <input
                 value={soeg}
                 onChange={(e) => setSoeg(e.target.value)}
@@ -914,7 +959,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     ];
 
     return (
-      <div style={{ padding: "32px 28px 64px", maxWidth: 1100 }}>
+      <div className="tb-pad" style={{ padding: "32px 28px 64px", maxWidth: 1100 }}>
         <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Hej {mig.navn.split(" ")[0]}</div>
         <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>
           Du har {mine.length} åbne opgaver fordelt på {Object.keys(ks).length} kunder.
@@ -1000,11 +1045,11 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const maksK = Math.max(1, ...data.kunder.map((k) => aabne.filter((x) => x.k.id === k.id).length));
 
     return (
-      <div style={{ padding: "32px 28px 64px" }}>
+      <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
         <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Overblik</div>
         <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Arbejdsbelastning og status på tværs af alle kunder.</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 32 }}>
+        <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginTop: 32 }}>
           {kpi.map((k) => (
             <div key={k.label} style={{ background: "#fff", border: "1px solid #E6E8EC", padding: 20 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>{k.label}</div>
@@ -1087,7 +1132,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       .slice(0, 6);
 
     return (
-      <div style={{ padding: "32px 28px 64px" }}>
+      <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 16, gap: 8 }}>
           <span style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>Farve</span>
           {KUNDE_FARVER.map((c) => (
@@ -1116,7 +1161,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             </button>
           )}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+        <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
           {kpi.map((c) => (
             <div key={c.label} style={{ background: "#fff", border: "1px solid #E6E8EC", padding: 20 }}>
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>{c.label}</div>
@@ -1125,7 +1170,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
           ))}
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16, alignItems: "start" }}>
+        <div className="tb-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginTop: 16, alignItems: "start" }}>
           {/* Donut */}
           <div style={{ background: "#fff", border: "1px solid #E6E8EC", padding: 24 }}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 20 }}>Fordeling på status</div>
@@ -1336,7 +1381,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
 
   function renderTabel(b: BoardDTO) {
     return (
-      <div style={{ padding: "24px 28px 80px", minWidth: 1180 }}>
+      <div className="tb-pad" style={{ padding: "24px 28px 80px", minWidth: 1180 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {b.grupper.map((g) => {
             const synlige = g.opgaver.filter(passerFilter);
@@ -1705,7 +1750,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
 
   function renderKanban(boardOpgaver: { o: OpgaveDTO; g: GruppeDTO }[]) {
     return (
-      <div className="tb-scroll" style={{ padding: "24px 28px 80px", overflowX: "auto" }}>
+      <div className="tb-scroll tb-pad" style={{ padding: "24px 28px 80px", overflowX: "auto" }}>
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start", minWidth: 1100 }}>
           {STATUS.map((s) => {
             const kort = boardOpgaver.filter((x) => x.o.status === s.navn);
@@ -1770,7 +1815,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       uger.push({ label: "Uge " + (31 + i) + " · " + d.getDate() + "/" + (d.getMonth() + 1) });
     }
     return (
-      <div className="tb-scroll" style={{ padding: "24px 28px 80px", overflowX: "auto" }}>
+      <div className="tb-scroll tb-pad" style={{ padding: "24px 28px 80px", overflowX: "auto" }}>
         <div style={{ background: "#fff", border: "1px solid #E6E8EC", minWidth: 1100 }}>
           <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", borderBottom: "1px solid #F0F1F4" }}>
             <div style={{ padding: "12px 16px", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9E9E9E" }}>Opgave</div>
@@ -1838,7 +1883,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", justifyContent: "flex-end" }}>
         <div onClick={() => setPanelId(null)} style={{ position: "absolute", inset: 0, background: "rgba(24,24,24,.28)" }} />
-        <div className="tb-scroll" style={{ position: "relative", width: 520, height: "100vh", background: "#fff", borderLeft: "1px solid #E6E8EC", overflowY: "auto" }}>
+        <div className="tb-scroll tb-panel" style={{ position: "relative", width: 520, height: "100vh", background: "#fff", borderLeft: "1px solid #E6E8EC", overflowY: "auto" }}>
           <div style={{ padding: "24px 28px 18px", borderBottom: "1px solid #F0F1F4" }}>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
               <div style={{ flex: 1 }}>
@@ -2251,7 +2296,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   function renderForside() {
     const kort = data.dashboard;
     return (
-      <div style={{ padding: "32px 28px 64px" }}>
+      <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
         <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
         <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
 

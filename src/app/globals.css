@@ -162,3 +162,112 @@ select:focus {
   background-clip: content-box;
   border-radius: 99px;
 }
+
+/* ==================================================================
+   MOBIL (< 768px). Desktop er 100% uændret: alle regler herunder ligger
+   enten som skjul-default (burger/overlay) eller inde i media query'en,
+   og de inline styles i App.tsx bevares 1:1 på desktop. Overrides af
+   inline styles kræver !important (inline vinder ellers over class).
+   ================================================================== */
+
+/* Burger og drawer-overlay findes i DOM'en men er skjult på desktop. */
+.tb-burger {
+  display: none;
+}
+.tb-drawer-overlay {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  /* App-shell: fra 264px + 1fr til én kolonne. */
+  .tb-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Sidebar ud af grid-flowet → off-canvas drawer, skjult som standard. */
+  .tb-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 264px;
+    max-width: 84vw;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform var(--dur-base) var(--ease-standard);
+  }
+  .tb-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Mørk backdrop bag den åbne drawer. */
+  .tb-drawer-overlay.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 17, 17, 0.5);
+    z-index: 55;
+  }
+
+  /* Tap-targets i draweren: mindst 40px høje. */
+  .tb-sidebar button,
+  .tb-sidebar a {
+    min-height: 40px;
+  }
+
+  /* Burger-knap i topbaren (kun mobil). */
+  .tb-burger {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex: none;
+    padding: 0;
+    border: 1px solid #e1e4e9;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  /* Topbar: mindre padding + gap. */
+  .tb-topbar {
+    padding: 0 14px !important;
+    gap: 12px !important;
+  }
+  .tb-topbar button,
+  .tb-topbar input {
+    min-height: 40px;
+  }
+
+  /* Søgefelt må ikke sprænge rækken. */
+  .tb-search {
+    width: auto !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  /* Indhold: reduceret side-padding. */
+  .tb-pad {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Kort-/graf-grids i én kolonne på mobil. */
+  .tb-grid-4,
+  .tb-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Opgave-panelet fylder hele skærmen i stedet for 520px. */
+  .tb-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  /* Skjules på mobil (fx skelet-sidebaren i loading.tsx). */
+  .tb-hide-mobile {
+    display: none !important;
+  }
+}
