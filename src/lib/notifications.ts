@@ -9,6 +9,7 @@
 // ------------------------------------------------------------------
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { appUrl } from "@/lib/appUrl";
 
 export type NotifyInput = {
   recipientId: string;
@@ -20,10 +21,6 @@ export type NotifyInput = {
   customerName?: string | null;
   time?: string;
 };
-
-function appUrl(): string {
-  return (process.env.AUTH_URL || "http://localhost:3000").replace(/\/$/, "");
-}
 
 export async function createNotification(n: NotifyInput): Promise<void> {
   // Aldrig notificér/maile om egne handlinger.

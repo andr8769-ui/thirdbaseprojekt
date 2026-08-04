@@ -96,7 +96,8 @@ npm run dev
 | `GOOGLE_CLIENT_ID` | OAuth Client ID fra Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | OAuth Client Secret |
 | `AUTH_SECRET` | Hemmelighed til NextAuth (`npx auth secret` eller `openssl rand -base64 32`) |
-| `AUTH_URL` | Appens canoniske URL (lokalt `http://localhost:3000`) |
+| `AUTH_URL` | **Lad være unset i produktion.** Appen kører `trustHost:true` og udleder hosten fra requesten, så auth er host-agnostisk. Sættes AUTH_URL, tvinger NextAuth-middleware alle requests over på den ene host. Sæt kun lokalt (`http://localhost:3000`) hvis nødvendigt. |
+| `APP_URL` | *(valgfrit)* Kanonisk URL brugt til links i e-mails/notifikationer. Unset → `http://localhost:3000` i udvikling, `https://projektstyring.thirdbase.dk` i produktion |
 | `ADMIN_EMAILS` | *(valgfrit)* Komma-separeret liste af mails der får rollen `Admin` (må slette alt). Default: `andreas@thirdbase.dk` |
 | `DATABASE_URL` | **Pooled** Postgres-forbindelse — bruges af appen i runtime |
 | `DATABASE_URL_UNPOOLED` | **Direct** Postgres-forbindelse — bruges af Prisma til migrationer (`directUrl`). Neon leverer begge; lokalt kan den være = `DATABASE_URL` |
@@ -147,14 +148,20 @@ Opret et OAuth 2.0 **Client ID** (type: *Web application*) under
 **Authorized JavaScript origins**
 ```
 http://localhost:3000
-https://projekt.thirdbase.dk
+https://projektstyring.thirdbase.dk
+https://thirdbaseprojekt.vercel.app
 ```
 
 **Authorized redirect URIs** (NextAuth’s callback-sti er `/api/auth/callback/google`)
 ```
 http://localhost:3000/api/auth/callback/google
-https://projekt.thirdbase.dk/api/auth/callback/google
+https://projektstyring.thirdbase.dk/api/auth/callback/google
+https://thirdbaseprojekt.vercel.app/api/auth/callback/google
 ```
+
+Fordi appen er host-agnostisk (`trustHost:true`), sender NextAuth callback-URL'en på
+**præcis den host, brugeren logger ind fra**. Hver host, der skal kunne logge ind, skal
+derfor have sin egen redirect-URI her — ellers svarer Google `redirect_uri_mismatch`.
 
 Tips:
 - Tilføj en redirect-URI pr. miljø, du deployer (fx Vercel preview-URLs, hvis I bruger dem).
@@ -176,7 +183,8 @@ Tips:
    | `GOOGLE_CLIENT_ID` | fra Google Cloud Console |
    | `GOOGLE_CLIENT_SECRET` | fra Google Cloud Console |
    | `AUTH_SECRET` | genereret hemmelighed |
-   | `AUTH_URL` | `https://projekt.thirdbase.dk` (jeres produktions-URL) |
+   | `AUTH_URL` | **Sæt IKKE denne.** Med `trustHost:true` udleder appen hosten fra requesten, så både `projektstyring.thirdbase.dk` og `*.vercel.app` virker. Sættes AUTH_URL, tvinger middleware alle requests over på den ene host og redirecter væk fra custom-domænet. |
+   | `APP_URL` *(valgfrit)* | Kun hvis links i mails skal pege et andet sted end `https://projektstyring.thirdbase.dk` |
    | `ADMIN_EMAILS` *(valgfrit)* | mails der får rollen Admin (default `andreas@thirdbase.dk`) |
    | `DATABASE_URL` | pooled Postgres connection string |
    | `DATABASE_URL_UNPOOLED` | direct Postgres connection string (til migrationer) |
@@ -195,9 +203,18 @@ Tips:
    Migration (og første seed) sker altså **automatisk ved hvert Vercel-build** — ingen
    manuelle skridt mod produktionsdatabasen.
 
-5. **Subdomæne**: peg `projekt.thirdbase.dk` mod Vercel-projektet under
-   **Settings → Domains**. Appen kører på sit eget Vercel-projekt, egen database og egen
-   frontend/backend — helt adskilt fra thirdbase.dk-hovedsitet.
+5. **Subdomæne**: peg `projektstyring.thirdbase.dk` mod Vercel-projektet under
+   **Settings → Domains** (CNAME hos DNS-udbyderen → Vercels DNS-target). Appen kører på
+   sit eget Vercel-projekt, egen database og egen frontend/backend — helt adskilt fra
+   thirdbase.dk-hovedsitet.
+
+   > **Kanonisk host / redirect til `.vercel.app`.** Ryger et request på custom-domænet
+   > videre til `https://thirdbaseprojekt.vercel.app/…`, er årsagen næsten altid, at
+   > `AUTH_URL`/`NEXTAUTH_URL` er sat i Vercel: NextAuth-middleware omskriver da hver
+   > request-origin til den værdi. **Fjern `AUTH_URL` og `NEXTAUTH_URL`** fra Vercel-projektets
+   > env (Production + Preview) og redeploy. Med `trustHost:true` udledes hosten derefter fra
+   > requesten, og både custom-domænet og `.vercel.app` virker hver for sig. Links i e-mails
+   > peger altid på den kanoniske host via `APP_URL`-default (`projektstyring.thirdbase.dk`).
 
 ---
 

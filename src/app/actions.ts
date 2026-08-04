@@ -23,6 +23,7 @@ import {
 import { createNotification } from "@/lib/notifications";
 import { sendEmailDetailed, activeTransport, effectiveFrom } from "@/lib/email";
 import { withDbRetry } from "@/lib/db";
+import { appUrl } from "@/lib/appUrl";
 import type { FilDTO } from "@/lib/types";
 
 /** Log ud. */
@@ -553,10 +554,6 @@ export async function sendTestEmail(): Promise<TestMailResultat> {
 // ================================================================
 // BRUGERADMINISTRATION (kun admin)
 // ================================================================
-function appUrl(): string {
-  return (process.env.AUTH_URL || "http://localhost:3000").replace(/\/$/, "");
-}
-
 const EMAIL_RE = /^[^@\s]+@thirdbase\.dk$/;
 
 function buildWelcome(navn: string): { subject: string; html: string; text: string } {
