@@ -1399,8 +1399,12 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       <div className="tb-pad" style={{ padding: "24px 28px 80px", minWidth: 1180 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {b.grupper.map((g) => {
-            const synlige = g.opgaver.filter(passerFilter).filter((o) => o.status !== "Færdig");
-            const total = Math.max(synlige.length, 1);
+            // Tæller og fremdriftsbjælke regner på ALLE opgaver i gruppen (også de
+            // færdige), så statistikken er uændret af at rækkerne kun viser de aktive.
+            const iGruppen = g.opgaver.filter(passerFilter);
+            const synlige = iGruppen.filter((o) => o.status !== "Færdig");
+            const faerdigeIGruppen = iGruppen.length - synlige.length;
+            const total = Math.max(iGruppen.length, 1);
             const gaaben = !foldet[g.id];
             return (
               <div key={g.id}>
@@ -1420,10 +1424,13 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                     {gaaben ? "▾" : "▸"}
                   </button>
                   <div style={{ fontSize: 16, fontWeight: 600, color: g.farve }}>{g.navn}</div>
-                  <div style={{ fontSize: 12, color: "#9E9E9E" }}>{synlige.length} opgaver</div>
+                  <div style={{ fontSize: 12, color: "#9E9E9E" }}>
+                    {synlige.length} aktive
+                    {faerdigeIGruppen > 0 && <span style={{ color: "#16A34A" }}> · {faerdigeIGruppen} færdige</span>}
+                  </div>
                   <div style={{ width: 170, height: 8, display: "flex", background: "#F0F1F4", marginLeft: 8 }}>
                     {STATUS.map((s) => {
-                      const n = synlige.filter((o) => o.status === s.navn).length;
+                      const n = iGruppen.filter((o) => o.status === s.navn).length;
                       return <div key={s.navn} title={s.navn + ": " + n} style={{ width: (n / total) * 100 + "%", background: s.f }} />;
                     })}
                   </div>
