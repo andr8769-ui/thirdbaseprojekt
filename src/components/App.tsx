@@ -18,7 +18,6 @@ import {
   erAdmin,
   initialerAf,
   KUNDE_FARVER,
-  IDAG,
   readableSize,
   filTilladt,
   filTypeLabel,
@@ -145,6 +144,13 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const dragRef = useRef<string | null>(null);
   const mig = data.mig;
 
+  // Dags dato kommer fra serveren (Europe/Copenhagen), så klienten ikke kan nå
+  // frem til en anden dato end den siden blev renderet med — fx omkring midnat.
+  // Alle dato-beregninger i klienten går gennem disse to wrappere.
+  const idag = data.idag;
+  const dageTil = (d: string) => dage(d, idag);
+  const dlFarve = (status: string, slut?: string | null) => deadlineFarve(status, slut, idag);
+
   // ---- data-hjælpere ----
   const bruger = (id: string) => data.brugere.find((b) => b.id === id) || data.brugere[0] || mig;
   const kunde = (id: string) => data.kunder.find((k) => k.id === id) || null;
@@ -250,7 +256,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const temp = tmpId();
     const nyOpg: OpgaveDTO = {
       id: temp, navn, ansvarlige: [mig.id], status: "Ikke startet", prioritet: "Medium",
-      start: IDAG, slut: plusDage(IDAG, 7), noter: "", creatorId: mig.id,
+      start: idag, slut: plusDage(idag, 7), noter: "", creatorId: mig.id,
       underopgaver: [], kommentarer: [], filer: [], log: [],
     };
     setData((d) => mapGruppe(d, groupId, (g) => ({ ...g, opgaver: [...g.opgaver, nyOpg] })));
@@ -300,7 +306,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     mutate(
       (d) => {
         const patched = patchTask(d, taskId, { start: startDate, slut: endDate });
-        return { ...patched, dashboard: beregnDashboard(patched.kunder) };
+        return { ...patched, dashboard: beregnDashboard(patched.kunder, idag) };
       },
       () => updateTaskDates(taskId, { startDate, endDate }),
       "Datoen kunne ikke gemmes",
@@ -946,7 +952,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const mine = alleOpgaver().filter((x) => x.o.ansvarlige.indexOf(mig.id) >= 0 && x.o.status !== "Færdig");
     const bucket: Record<string, Flat[]> = { forsinket: [], idag: [], uge: [], senere: [] };
     mine.forEach((x) => {
-      const d = x.o.slut ? dage(x.o.slut) : 99;
+      const d = x.o.slut ? dageTil(x.o.slut) : 99;
       if (d < 0) bucket.forsinket.push(x);
       else if (d === 0) bucket.idag.push(x);
       else if (d <= 6) bucket.uge.push(x);
@@ -1021,7 +1027,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                         <span style={sx(PRIK(p.f, 8))} />
                         {x.o.prioritet}
                       </div>
-                      <div style={{ fontSize: 13, textAlign: "right", color: deadlineFarve(x.o.status, x.o.slut) }}>
+                      <div style={{ fontSize: 13, textAlign: "right", color: dlFarve(x.o.status, x.o.slut) }}>
                         {dtoTekst(x.o.slut)}
                       </div>
                     </div>
@@ -1041,7 +1047,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const aabne = alle.filter((x) => x.o.status !== "Færdig");
     const kpi = [
       { label: "Åbne opgaver", vaerdi: aabne.length, farve: "#181818" },
-      { label: "Forsinkede", vaerdi: aabne.filter((x) => x.o.slut && dage(x.o.slut) < 0).length, farve: "#FF442B" },
+      { label: "Forsinkede", vaerdi: aabne.filter((x) => x.o.slut && dageTil(x.o.slut) < 0).length, farve: "#FF442B" },
       { label: "Aktive kunder", vaerdi: data.kunder.length, farve: "#181818" },
       { label: "Boards i drift", vaerdi: data.kunder.reduce((a, k) => a + k.boards.length, 0), farve: "#3355FF" },
     ];
@@ -1116,7 +1122,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const aabne = alle.filter((x) => x.o.status !== "Færdig");
     const kpi = [
       { label: "Åbne opgaver", vaerdi: aabne.length, farve: "#181818" },
-      { label: "Forsinkede", vaerdi: aabne.filter((x) => x.o.slut && dage(x.o.slut) < 0).length, farve: "#FF442B" },
+      { label: "Forsinkede", vaerdi: aabne.filter((x) => x.o.slut && dageTil(x.o.slut) < 0).length, farve: "#FF442B" },
       { label: "Færdige i alt", vaerdi: alle.length - aabne.length, farve: "#16A34A" },
       { label: "Boards", vaerdi: k.boards.length, farve: "#3355FF" },
     ];
@@ -1250,7 +1256,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   }}
                   style={{ display: "flex", gap: 12, padding: "10px 0", borderBottom: "1px solid #F0F1F4", cursor: "pointer" }}
                 >
-                  <div style={{ width: 52, flex: "none", fontSize: 12, fontWeight: 600, color: deadlineFarve(x.o.status, x.o.slut) }}>
+                  <div style={{ width: 52, flex: "none", fontSize: 12, fontWeight: 600, color: dlFarve(x.o.status, x.o.slut) }}>
                     {dtoTekst(x.o.slut)}
                   </div>
                   <div style={{ minWidth: 0 }}>
@@ -1753,7 +1759,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
           </div>
 
           <div
-            style={{ padding: "0 12px", display: "flex", alignItems: "center", fontSize: 13, borderLeft: "1px solid #F0F1F4", color: deadlineFarve(o.status, o.slut) }}
+            style={{ padding: "0 12px", display: "flex", alignItems: "center", fontSize: 13, borderLeft: "1px solid #F0F1F4", color: dlFarve(o.status, o.slut) }}
           >
             {redigerDeadline === o.id ? (
               <input
@@ -1761,7 +1767,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                 // Har opgaven ingen deadline, foreslås i dag + 7 dage, så den kan
                 // accepteres med ét tryk. Forslaget GEMMES først når man aktivt
                 // bekræfter (vælger dato eller trykker Enter) — se onBlur nedenfor.
-                defaultValue={o.slut || plusDage(IDAG, 7)}
+                defaultValue={o.slut || plusDage(idag, 7)}
                 autoFocus
                 onChange={(e) => {
                   roertRef.current = true;
@@ -1902,7 +1908,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                             </div>
                           );
                         })}
-                        <span style={{ marginLeft: "auto", fontSize: 11, color: deadlineFarve(x.o.status, x.o.slut) }}>{dtoTekst(x.o.slut)}</span>
+                        <span style={{ marginLeft: "auto", fontSize: 11, color: dlFarve(x.o.status, x.o.slut) }}>{dtoTekst(x.o.slut)}</span>
                       </div>
                     </div>
                   ))}
@@ -2108,7 +2114,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   value={o.start || ""}
                   onChange={(e) => gemDatoer(o, e.target.value || null, o.slut)}
                   title="Startdato"
-                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
+                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: dlFarve(o.status, o.slut) }}
                 />
                 <span style={{ color: "#9E9E9E" }}>–</span>
                 <input
@@ -2116,7 +2122,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   value={o.slut || ""}
                   onChange={(e) => gemDatoer(o, o.start, e.target.value || null)}
                   title="Slutdato (deadline)"
-                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
+                  style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: dlFarve(o.status, o.slut) }}
                 />
               </div>
               {/* Har opgaven ingen datoer, tilbydes standardperioden i dag → +7 dage
@@ -2125,7 +2131,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   ændres bagefter. */}
               {!o.start && !o.slut && (
                 <button
-                  onClick={() => gemDatoer(o, IDAG, plusDage(IDAG, 7))}
+                  onClick={() => gemDatoer(o, idag, plusDage(idag, 7))}
                   style={{
                     marginTop: 8,
                     height: 30,
@@ -2476,7 +2482,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     const procent = mine.length > 0 ? Math.round((afsluttede.length / mine.length) * 100) : 0;
 
     const medDage = (fn: (d: number) => boolean) =>
-      aabne.filter((x) => x.o.slut != null && fn(dage(x.o.slut))).length;
+      aabne.filter((x) => x.o.slut != null && fn(dageTil(x.o.slut))).length;
     const overskredne = medDage((d) => d < 0);
     const iDag = medDage((d) => d === 0);
     const denneUge = medDage((d) => d > 0 && d <= 6);
@@ -2659,7 +2665,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   }}
                   style={{ display: "flex", gap: 10, alignItems: "baseline", cursor: "pointer" }}
                 >
-                  <span style={{ width: 44, flex: "none", fontSize: 12, fontWeight: 600, color: deadlineFarve("", n.slut) }}>{dtoTekst(n.slut)}</span>
+                  <span style={{ width: 44, flex: "none", fontSize: 12, fontWeight: 600, color: dlFarve("", n.slut) }}>{dtoTekst(n.slut)}</span>
                   <span style={{ fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.navn}</span>
                 </div>
               ))}

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { withDbRetry } from "@/lib/db";
-import { MDR, readableSize } from "@/lib/constants";
+import { MDR, readableSize, dagsDato } from "@/lib/constants";
 import { beregnDashboard } from "@/lib/dashboard";
 import type { AppData, KundeDTO, OpgaveDTO, FilDTO } from "@/lib/types";
 
@@ -127,6 +127,10 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
 
   const migRow = users.find((u) => u.id === currentUserId);
 
+  // Dags dato beregnes ÉN gang server-side og sendes med til klienten, så begge
+  // sider bruger samme dato — også hen over midnat.
+  const idag = dagsDato();
+
   return {
     brugere: users.map((u) => ({
       id: u.id,
@@ -142,6 +146,7 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
     mig: migRow
       ? { id: migRow.id, navn: migRow.name, rolle: migRow.role, ini: migRow.initials, f: migRow.color, email: migRow.email }
       : { id: currentUserId, navn: "Ukendt", rolle: "Medarbejder", ini: "?", f: "#3355FF", email: "" },
-    dashboard: beregnDashboard(kunder),
+    idag,
+    dashboard: beregnDashboard(kunder, idag),
   };
 }

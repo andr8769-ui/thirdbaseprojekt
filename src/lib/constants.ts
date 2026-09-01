@@ -21,9 +21,25 @@ export const PRIO: PrioDef[] = [
   { navn: "Lav", f: "#9E9E9E" },
 ];
 
-// Prototypen regner ud fra en fast "i dag" (2026-08-03). Vi beholder den,
-// så deadlines, tidslinjer og buckets matcher seed-dataens datoer 1:1.
-export const IDAG = "2026-08-03";
+/**
+ * Dags dato som 'YYYY-MM-DD' i Europe/Copenhagen.
+ *
+ * Bevidst en funktion og ikke en konstant: en modul-konstant ville blive
+ * beregnet én gang ved import og derefter stå stille, så en server der lever
+ * over midnat ville blive ved med at bruge gårsdagens dato.
+ *
+ * Tidszonen er låst til Europe/Copenhagen, så datoen ikke skifter et forkert
+ * sted omkring midnat, uanset hvor serveren står, eller hvordan klientens
+ * maskine er sat op. 'en-CA' formaterer netop som YYYY-MM-DD.
+ */
+export function dagsDato(nu: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Copenhagen",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(nu);
+}
 
 export const MDR = [
   "jan.", "feb.", "mar.", "apr.", "maj", "jun.",
@@ -101,14 +117,16 @@ export function dtoTekst(d?: string | null): string {
   return parseInt(p[2], 10) + ". " + MDR[parseInt(p[1], 10) - 1];
 }
 
-export function dage(d: string): number {
-  return Math.round((new Date(d).getTime() - new Date(IDAG).getTime()) / 86400000);
+/** Antal dage fra 'idag' til datoen d (negativt = overskredet).
+ *  'idag' kan sendes med, så server og klient regner på præcis samme dato. */
+export function dage(d: string, idag: string = dagsDato()): number {
+  return Math.round((Date.parse(d + "T00:00:00Z") - Date.parse(idag + "T00:00:00Z")) / 86400000);
 }
 
-export function deadlineFarve(status: string, slut?: string | null): string {
+export function deadlineFarve(status: string, slut?: string | null, idag: string = dagsDato()): string {
   if (status === "Færdig") return "#9E9E9E";
   if (!slut) return "#4A4A4A";
-  const d = dage(slut);
+  const d = dage(slut, idag);
   if (d < 0) return "#FF442B";
   if (d <= 1) return "#FF8A65";
   return "#4A4A4A";
