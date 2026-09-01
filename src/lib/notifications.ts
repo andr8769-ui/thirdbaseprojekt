@@ -3,12 +3,15 @@
 // notifikation til databasen OG sender en e-mail til modtageren.
 //
 // Regler:
-//  - Send aldrig til brugeren om brugerens egne handlinger (recipient === actor).
+//  - Send aldrig til brugeren om brugerens egne handlinger (recipient === actor)
+//    MEDMINDRE altidNotificer er sat. Tildeling bruger altidNotificer, så man også
+//    får besked når man sætter sig selv (eller bliver sat) på en opgave.
 //  - Respektér modtagerens emailNotifications-flag (kun e-mailen slås fra).
 //  - E-mail er fire-and-forget: fejl må aldrig få en action/request til at fejle.
+//  - Hvert forsøg logges med [notifikation] så det kan følges i Vercel-loggen.
 // ------------------------------------------------------------------
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendEmailDetailed } from "@/lib/email";
 import { appUrl } from "@/lib/appUrl";
 
 export type NotifyInput = {
@@ -20,11 +23,17 @@ export type NotifyInput = {
   taskName?: string | null;
   customerName?: string | null;
   time?: string;
+  /** Notificér også selvom modtageren selv udførte handlingen (bruges ved tildeling). */
+  altidNotificer?: boolean;
 };
 
 export async function createNotification(n: NotifyInput): Promise<void> {
-  // Aldrig notificér/maile om egne handlinger.
-  if (n.recipientId === n.actor.id) return;
+  // Egne handlinger giver normalt ingen besked — men tildeling skal altid igennem,
+  // så man får mail også når man selv sætter sig på (eller bliver sat på) en opgave.
+  if (n.recipientId === n.actor.id && !n.altidNotificer) {
+    console.log(`[notifikation] sprunget over: modtager === afsender (${n.recipientId}) — "${n.text}"`);
+    return;
+  }
 
   // 1) In-app notifikation i DB.
   try {
@@ -48,7 +57,16 @@ export async function createNotification(n: NotifyInput): Promise<void> {
       where: { id: n.recipientId },
       select: { email: true, name: true, emailNotifications: true },
     });
-    if (!modtager?.email || modtager.emailNotifications === false) return;
+    if (!modtager?.email) {
+      console.warn(`[notifikation] ingen mail sendt: brugeren ${n.recipientId} har ingen e-mailadresse.`);
+      return;
+    }
+    if (modtager.emailNotifications === false) {
+      console.warn(
+        `[notifikation] ingen mail sendt til ${modtager.email}: e-mail-notifikationer er slået FRA for brugeren (kan slås til under /indstillinger).`,
+      );
+      return;
+    }
 
     const mail = buildMail({
       recipientName: modtager.name,
@@ -58,9 +76,16 @@ export async function createNotification(n: NotifyInput): Promise<void> {
       customerName: n.customerName ?? null,
       taskId: n.taskId ?? null,
     });
-    await sendEmail({ to: modtager.email, ...mail });
+    const res = await sendEmailDetailed({ to: modtager.email, ...mail });
+    if (res.ok) {
+      console.log(`[notifikation] mail SENDT til ${modtager.email} via ${res.transport} (fra ${res.from}) — "${n.text}"`);
+    } else {
+      console.error(
+        `[notifikation] mail FEJLEDE til ${modtager.email} via ${res.transport} (fra ${res.from}): ${res.error}`,
+      );
+    }
   } catch (err) {
-    console.error("[notifications] e-mail fejlede (ignoreret):", (err as Error)?.message || err);
+    console.error("[notifikation] e-mail fejlede (ignoreret):", (err as Error)?.message || err);
   }
 }
 

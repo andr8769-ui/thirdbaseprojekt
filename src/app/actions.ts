@@ -708,11 +708,15 @@ export async function assignUser(taskId: string, userId: string) {
   await createNotification({
     recipientId: userId,
     actor: me,
-    text: me.navn + ' tildelte dig "' + ctx.name + '"',
+    // Sætter man sig selv på opgaven, giver "tildelte dig" ikke mening.
+    text: userId === me.id ? 'Du blev sat på "' + ctx.name + '"' : me.navn + ' tildelte dig "' + ctx.name + '"',
     color: "#3355FF",
     taskId,
     taskName: ctx.name,
     customerName: ctx.group?.board?.customer?.name ?? null,
+    // Tildeling skal ALTID give besked — også når man selv er afsenderen.
+    // Uden denne blev selv-tildeling filtreret fra og der kom aldrig mail.
+    altidNotificer: true,
   });
 }
 
