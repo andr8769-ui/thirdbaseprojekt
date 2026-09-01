@@ -83,6 +83,8 @@ export type DashboardKortDTO = {
 };
 
 export type AppData = {
+  /** Dags dato ('YYYY-MM-DD', Europe/Copenhagen) beregnet server-side. */
+  idag: string;
   brugere: BrugerDTO[];
   kunder: KundeDTO[];
   notifikationer: NotiDTO[];

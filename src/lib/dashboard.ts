@@ -1,10 +1,11 @@
-import { IDAG } from "@/lib/constants";
 import type { KundeDTO, DashboardKortDTO } from "@/lib/types";
 
 // Ren aggregering (ingen Prisma) — bruges både server-side i loadAppData og
 // klient-side, så forsidens kort kan genberegnes optimistisk når fx en deadline
 // ændres. Beregnes fra det allerede-indlæste datatræ, nul ekstra DB-kald.
-export function beregnDashboard(kunder: KundeDTO[]): DashboardKortDTO[] {
+// idag sendes ind (i stedet for at blive beregnet her), så server og klient
+// altid regner overskredne deadlines ud fra præcis samme dato.
+export function beregnDashboard(kunder: KundeDTO[], idag: string): DashboardKortDTO[] {
   return kunder.map((k) => {
     let opgaver = 0;
     let faerdige = 0;
@@ -17,7 +18,7 @@ export function beregnDashboard(kunder: KundeDTO[]): DashboardKortDTO[] {
           if (o.status === "Færdig") {
             faerdige++;
           } else {
-            if (o.slut && o.slut < IDAG) overskredne++;
+            if (o.slut && o.slut < idag) overskredne++;
             aabne.push({ id: o.id, navn: o.navn, slut: o.slut, boardId: b.id });
           }
         }
