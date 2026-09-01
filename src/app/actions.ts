@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { after } from "next/server";
 import { auth, signOut } from "@/auth";
+import { HUSK_COOKIE } from "@/auth.config";
 import { prisma } from "@/lib/prisma";
 import {
   statusOf,
@@ -26,8 +28,10 @@ import { withDbRetry } from "@/lib/db";
 import { appUrl } from "@/lib/appUrl";
 import type { FilDTO } from "@/lib/types";
 
-/** Log ud. */
+/** Log ud. Rydder BÅDE sessionstokenet og "Forbliv logget ind"-flaget, så en
+ *  langtidssession ikke kan genopstå ved næste login uden nyt flueben. */
 export async function logout() {
+  (await cookies()).delete(HUSK_COOKIE);
   await signOut({ redirectTo: "/login" });
 }
 

@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
-import authConfig from "./auth.config";
+import { cookies } from "next/headers";
+import authConfig, { HUSK_COOKIE, SESSION_KORT_MS, SESSION_LANG_MS, erUdloebet } from "./auth.config";
 import { prisma } from "@/lib/prisma";
 import { withDbRetry } from "@/lib/db";
 import { initialerAf, farveForNavn } from "@/lib/constants";
@@ -72,7 +73,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.name = dbUser.name;
           token.picture = dbUser.image;
         }
+
+        // Kun ved selve login: læs "Forbliv logget ind"-fluebenet, som /login
+        // lagde i en kortlivet cookie lige før signIn, og stempl et absolut
+        // udløb på tokenet. Kører i callback-route-handleren (Node), aldrig i
+        // middleware — derfor er cookies() tilgængelig her. try/catch for en
+        // sikkerheds skyld, så login aldrig kan vælte på et cookie-opslag.
+        let husk = false;
+        try {
+          husk = (await cookies()).get(HUSK_COOKIE)?.value === "1";
+        } catch {
+          husk = false;
+        }
+        token.husk = husk;
+        token.udloeb = Date.now() + (husk ? SESSION_LANG_MS : SESSION_KORT_MS);
       }
+
+      // Udløbet session → null. Auth.js bygger da ingen session og rydder
+      // selv sessionscookien (sessionStore.clean()).
+      if (erUdloebet(token)) return null;
       return token;
     },
 
