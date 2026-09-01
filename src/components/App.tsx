@@ -100,6 +100,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [redigerDeadline, setRedigerDeadline] = useState<string | null>(null);
   const [datoFejl, setDatoFejl] = useState<string | null>(null);
   const escRef = useRef(false);
+  // Har brugeren rørt deadline-editoren? Styrer om et forudfyldt forslag må gemmes.
+  const roertRef = useRef(false);
   useEffect(() => {
     setDatoFejl(null);
   }, [panelId]);
@@ -119,6 +121,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [modalFarve, setModalFarve] = useState<string>(KUNDE_FARVER[0]);
   const [udfoldet, setUdfoldet] = useState<Record<string, boolean>>({});
   const [foldet, setFoldet] = useState<Record<string, boolean>>({});
+  // "Afsluttede opgaver"-sektionen pr. board — foldet sammen som standard.
+  const [visAfsluttede, setVisAfsluttede] = useState<Record<string, boolean>>({});
 
   // Mobil off-canvas drawer (kun < 768px; burgeren er display:none på desktop, så
   // denne state ændres aldrig på desktop → desktop-layoutet er 100% uberørt).
@@ -1380,12 +1384,27 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   }
 
   function renderTabel(b: BoardDTO) {
+    // Afsluttede opgaver forlader den aktive liste og samles i egen sektion nederst.
+    // Beregnes ud fra det lokale (optimistiske) datatræ, så et statusskifte til
+    // "Færdig" flytter opgaven med det samme — uden reload.
+    const afsluttede: { o: OpgaveDTO; g: GruppeDTO }[] = [];
+    b.grupper.forEach((g) =>
+      g.opgaver.filter(passerFilter).forEach((o) => {
+        if (o.status === "Færdig") afsluttede.push({ o, g });
+      }),
+    );
+    const afsluttetAaben = !!visAfsluttede[b.id];
+
     return (
       <div className="tb-pad" style={{ padding: "24px 28px 80px", minWidth: 1180 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {b.grupper.map((g) => {
-            const synlige = g.opgaver.filter(passerFilter);
-            const total = Math.max(synlige.length, 1);
+            // Tæller og fremdriftsbjælke regner på ALLE opgaver i gruppen (også de
+            // færdige), så statistikken er uændret af at rækkerne kun viser de aktive.
+            const iGruppen = g.opgaver.filter(passerFilter);
+            const synlige = iGruppen.filter((o) => o.status !== "Færdig");
+            const faerdigeIGruppen = iGruppen.length - synlige.length;
+            const total = Math.max(iGruppen.length, 1);
             const gaaben = !foldet[g.id];
             return (
               <div key={g.id}>
@@ -1405,10 +1424,13 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                     {gaaben ? "▾" : "▸"}
                   </button>
                   <div style={{ fontSize: 16, fontWeight: 600, color: g.farve }}>{g.navn}</div>
-                  <div style={{ fontSize: 12, color: "#9E9E9E" }}>{synlige.length} opgaver</div>
+                  <div style={{ fontSize: 12, color: "#9E9E9E" }}>
+                    {synlige.length} aktive
+                    {faerdigeIGruppen > 0 && <span style={{ color: "#16A34A" }}> · {faerdigeIGruppen} færdige</span>}
+                  </div>
                   <div style={{ width: 170, height: 8, display: "flex", background: "#F0F1F4", marginLeft: 8 }}>
                     {STATUS.map((s) => {
-                      const n = synlige.filter((o) => o.status === s.navn).length;
+                      const n = iGruppen.filter((o) => o.status === s.navn).length;
                       return <div key={s.navn} title={s.navn + ": " + n} style={{ width: (n / total) * 100 + "%", background: s.f }} />;
                     })}
                   </div>
@@ -1460,6 +1482,79 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               </div>
             );
           })}
+
+          {/* ---------- Afsluttede opgaver ---------- */}
+          {afsluttede.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 0 10px" }}>
+                <button
+                  onClick={() => setVisAfsluttede((v) => ({ ...v, [b.id]: !afsluttetAaben }))}
+                  style={{ background: "transparent", border: 0, fontSize: 11, cursor: "pointer", padding: 0, width: 14, color: "#16A34A" }}
+                >
+                  {afsluttetAaben ? "▾" : "▸"}
+                </button>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#16A34A" }}>Afsluttede opgaver</div>
+                <div style={{ fontSize: 12, color: "#9E9E9E" }}>{afsluttede.length}</div>
+              </div>
+
+              {afsluttetAaben && (
+                <div style={{ background: "#fff", border: "1px solid #E6E8EC", borderLeft: "4px solid #16A34A" }}>
+                  {afsluttede.map(({ o, g }) => (
+                    <div
+                      key={o.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(300px,1fr) 190px 150px 130px",
+                        alignItems: "center",
+                        borderBottom: "1px solid #F0F1F4",
+                        minHeight: 46,
+                      }}
+                    >
+                      <div
+                        onClick={() => setPanelId(o.id)}
+                        title="Åbn opgaven"
+                        style={{ padding: "10px 16px", minWidth: 0, cursor: "pointer" }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 14,
+                            color: "#9E9E9E",
+                            textDecoration: "line-through",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {o.navn}
+                        </span>
+                      </div>
+                      <div style={{ padding: "10px 12px", fontSize: 12.5, color: "#9E9E9E", borderLeft: "1px solid #F0F1F4" }}>{g.navn}</div>
+                      <div style={{ padding: "10px 12px", fontSize: 12.5, color: "#9E9E9E", borderLeft: "1px solid #F0F1F4" }}>
+                        {dtoTekst(o.slut)}
+                      </div>
+                      <div style={{ padding: "6px 12px", borderLeft: "1px solid #F0F1F4" }}>
+                        <button
+                          onClick={() => doSetStatus(o.id, "I gang")}
+                          title="Sæt tilbage i gang"
+                          style={{
+                            height: 30,
+                            border: "1px solid #E1E4E9",
+                            background: "#fff",
+                            color: "#3355FF",
+                            fontSize: 12.5,
+                            padding: "0 10px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Genåbn
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1663,20 +1758,33 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             {redigerDeadline === o.id ? (
               <input
                 type="date"
-                defaultValue={o.slut || ""}
+                // Har opgaven ingen deadline, foreslås i dag + 7 dage, så den kan
+                // accepteres med ét tryk. Forslaget GEMMES først når man aktivt
+                // bekræfter (vælger dato eller trykker Enter) — se onBlur nedenfor.
+                defaultValue={o.slut || plusDage(IDAG, 7)}
                 autoFocus
-                onChange={(e) => commitDeadline(o, e.target.value)}
+                onChange={(e) => {
+                  roertRef.current = true;
+                  commitDeadline(o, e.target.value);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     escRef.current = true;
                     setRedigerDeadline(null);
                   } else if (e.key === "Enter") {
+                    // Enter = eksplicit accept, også af et urørt forslag.
                     commitDeadline(o, (e.target as HTMLInputElement).value);
                   }
                 }}
                 onBlur={(e) => {
                   if (escRef.current) {
                     escRef.current = false;
+                    return;
+                  }
+                  // Klikker man væk uden at røre forslaget, gemmes intet — så en
+                  // opgave uden deadline får ikke sat én ved et uheld.
+                  if (!roertRef.current) {
+                    setRedigerDeadline(null);
                     return;
                   }
                   commitDeadline(o, e.target.value);
@@ -1687,9 +1795,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               <span
                 onClick={() => {
                   setDatoFejl(null);
+                  roertRef.current = false;
                   setRedigerDeadline(o.id);
                 }}
-                title="Klik for at ændre deadline"
+                title={o.slut ? "Klik for at ændre deadline" : "Klik for at sætte deadline"}
                 style={{ cursor: "pointer" }}
               >
                 {dtoTekst(o.slut)}
@@ -2010,6 +2119,27 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
                 />
               </div>
+              {/* Har opgaven ingen datoer, tilbydes standardperioden i dag → +7 dage
+                  som ét klik. Felterne står tomme indtil da, så der aldrig ser ud
+                  til at være en deadline uden at der er en. Begge felter kan frit
+                  ændres bagefter. */}
+              {!o.start && !o.slut && (
+                <button
+                  onClick={() => gemDatoer(o, IDAG, plusDage(IDAG, 7))}
+                  style={{
+                    marginTop: 8,
+                    height: 30,
+                    border: "1px solid #E1E4E9",
+                    background: "#fff",
+                    color: "#3355FF",
+                    fontSize: 12.5,
+                    padding: "0 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Sæt deadline: i dag → +7 dage
+                </button>
+              )}
               {datoFejl && <div style={{ fontSize: 12, color: "#B4291A", marginTop: 6 }}>{datoFejl}</div>}
             </div>
           </div>
@@ -2295,10 +2425,26 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   // ================================================================
   function renderForside() {
     const kort = data.dashboard;
+    const medarbejder = !erAdmin(mig.rolle);
     return (
       <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
-        <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
-        <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
+        {medarbejder ? (
+          <>
+            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>
+              Hej {mig.navn.split(" ")[0]}
+            </div>
+            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Dit overblik lige nu.</div>
+            {renderMitOverblik()}
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 44 }}>
+              Alle kunder
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
+            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
+          </>
+        )}
 
         {kort.length === 0 ? (
           <div style={{ marginTop: 40, background: "#fff", border: "1px solid #E6E8EC", padding: "56px 32px", textAlign: "center" }}>
@@ -2316,6 +2462,133 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             {kort.map((k) => renderKundeKort(k))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Personligt overblik på forsiden (medarbejdere): samlet fremdrift, åbne mod
+  // afsluttede, deadlines i dag/denne uge og overskredne tydeligt markeret.
+  // Bygger på det lokale datatræ — ingen ekstra DB-kald, ingen nye afhængigheder.
+  function renderMitOverblik() {
+    const mine = alleOpgaver().filter((x) => x.o.ansvarlige.indexOf(mig.id) >= 0);
+    const afsluttede = mine.filter((x) => x.o.status === "Færdig");
+    const aabne = mine.filter((x) => x.o.status !== "Færdig");
+    const procent = mine.length > 0 ? Math.round((afsluttede.length / mine.length) * 100) : 0;
+
+    const medDage = (fn: (d: number) => boolean) =>
+      aabne.filter((x) => x.o.slut != null && fn(dage(x.o.slut))).length;
+    const overskredne = medDage((d) => d < 0);
+    const iDag = medDage((d) => d === 0);
+    const denneUge = medDage((d) => d > 0 && d <= 6);
+
+    const felter = [
+      { label: "Overskredet", vaerdi: overskredne, farve: "#FF442B" },
+      { label: "Deadline i dag", vaerdi: iDag, farve: "#FF8A65" },
+      { label: "Denne uge", vaerdi: denneUge, farve: "#3355FF" },
+      { label: "Åbne i alt", vaerdi: aabne.length, farve: "#181818" },
+    ];
+
+    return (
+      <div style={{ background: "#fff", border: "1px solid #E6E8EC", marginTop: 24, padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+          {/* Fremdriftsring — samme conic-gradient-teknik som kundedashboardet. */}
+          <div
+            style={{
+              width: 132,
+              height: 132,
+              borderRadius: "50%",
+              flex: "none",
+              position: "relative",
+              background: `conic-gradient(#16A34A 0% ${procent}%, #F0F1F4 ${procent}% 100%)`,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 14,
+                background: "#fff",
+                borderRadius: "50%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em" }}>{procent}%</div>
+              <div style={{ fontSize: 10, color: "#9E9E9E", letterSpacing: "0.06em", textTransform: "uppercase" }}>Færdig</div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ fontSize: 15, color: "#4A4A4A", lineHeight: 1.6 }}>
+              {mine.length === 0 ? (
+                "Du har ingen opgaver lige nu."
+              ) : (
+                <>
+                  Du har <strong style={{ color: "#181818" }}>{aabne.length}</strong> åbne og{" "}
+                  <strong style={{ color: "#16A34A" }}>{afsluttede.length}</strong> afsluttede opgaver.
+                  {overskredne > 0 && (
+                    <>
+                      {" "}
+                      <strong style={{ color: "#FF442B" }}>{overskredne} er overskredet.</strong>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Åbne mod afsluttede som én bjælke. */}
+            <div style={{ display: "flex", height: 8, background: "#F0F1F4", marginTop: 16 }}>
+              <div style={{ width: procent + "%", background: "#16A34A" }} title={`Afsluttet: ${afsluttede.length}`} />
+              <div style={{ flex: 1, background: "#C4C7CE" }} title={`Åbne: ${aabne.length}`} />
+            </div>
+
+            <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 20 }}>
+              {felter.map((f) => {
+                const fremhaev = f.label === "Overskredet" && f.vaerdi > 0;
+                return (
+                  <div
+                    key={f.label}
+                    style={{
+                      border: "1px solid " + (fremhaev ? "#FFD7CF" : "#E6E8EC"),
+                      background: fremhaev ? "#FFF3F0" : "#fff",
+                      borderLeft: "3px solid " + f.farve,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", color: f.vaerdi > 0 ? f.farve : "#C4C7CE" }}>
+                      {f.vaerdi}
+                    </div>
+                    <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 4 }}>
+                      {f.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {mine.length > 0 && (
+              <button
+                onClick={() => {
+                  setNav({ type: "mit" });
+                  setPanelId(null);
+                }}
+                style={{
+                  marginTop: 18,
+                  height: 34,
+                  border: "1px solid #E1E4E9",
+                  background: "#fff",
+                  color: "#3355FF",
+                  fontSize: 13,
+                  padding: "0 14px",
+                  cursor: "pointer",
+                }}
+              >
+                Se mine opgaver →
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

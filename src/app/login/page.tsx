@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { auth, signIn } from "@/auth";
+import { HUSK_COOKIE, SIKRE_COOKIES } from "@/auth.config";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +25,19 @@ export default async function LoginPage({
   const { error } = await searchParams;
   const fejlBesked = error ? FEJL[error] || FEJL.Default : null;
 
-  async function loginMedGoogle() {
+  async function loginMedGoogle(formData: FormData) {
     "use server";
+    // Fluebenet kan ikke sendes med gennem Googles OAuth-redirect, så det lægges
+    // i en kortlivet, httpOnly cookie som jwt-callbacken læser når brugeren
+    // kommer retur. 10 minutter er rigeligt til at gennemføre et login.
+    const husk = formData.get("husk") === "on";
+    (await cookies()).set(HUSK_COOKIE, husk ? "1" : "0", {
+      httpOnly: true,
+      secure: SIKRE_COOKIES,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 10 * 60,
+    });
     await signIn("google", { redirectTo: "/" });
   }
 
@@ -107,6 +120,26 @@ export default async function LoginPage({
             )}
 
             <form action={loginMedGoogle} style={{ marginTop: 32 }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 16,
+                  fontSize: 14,
+                  color: "#4A4A4A",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  name="husk"
+                  style={{ width: 16, height: 16, accentColor: "#FF442B", cursor: "pointer", flex: "none" }}
+                />
+                Forbliv logget ind
+              </label>
+
               <button
                 type="submit"
                 style={{
