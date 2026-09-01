@@ -2418,10 +2418,26 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   // ================================================================
   function renderForside() {
     const kort = data.dashboard;
+    const medarbejder = !erAdmin(mig.rolle);
     return (
       <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
-        <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
-        <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
+        {medarbejder ? (
+          <>
+            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>
+              Hej {mig.navn.split(" ")[0]}
+            </div>
+            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Dit overblik lige nu.</div>
+            {renderMitOverblik()}
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 44 }}>
+              Alle kunder
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
+            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
+          </>
+        )}
 
         {kort.length === 0 ? (
           <div style={{ marginTop: 40, background: "#fff", border: "1px solid #E6E8EC", padding: "56px 32px", textAlign: "center" }}>
@@ -2439,6 +2455,133 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             {kort.map((k) => renderKundeKort(k))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Personligt overblik på forsiden (medarbejdere): samlet fremdrift, åbne mod
+  // afsluttede, deadlines i dag/denne uge og overskredne tydeligt markeret.
+  // Bygger på det lokale datatræ — ingen ekstra DB-kald, ingen nye afhængigheder.
+  function renderMitOverblik() {
+    const mine = alleOpgaver().filter((x) => x.o.ansvarlige.indexOf(mig.id) >= 0);
+    const afsluttede = mine.filter((x) => x.o.status === "Færdig");
+    const aabne = mine.filter((x) => x.o.status !== "Færdig");
+    const procent = mine.length > 0 ? Math.round((afsluttede.length / mine.length) * 100) : 0;
+
+    const medDage = (fn: (d: number) => boolean) =>
+      aabne.filter((x) => x.o.slut != null && fn(dage(x.o.slut))).length;
+    const overskredne = medDage((d) => d < 0);
+    const iDag = medDage((d) => d === 0);
+    const denneUge = medDage((d) => d > 0 && d <= 6);
+
+    const felter = [
+      { label: "Overskredet", vaerdi: overskredne, farve: "#FF442B" },
+      { label: "Deadline i dag", vaerdi: iDag, farve: "#FF8A65" },
+      { label: "Denne uge", vaerdi: denneUge, farve: "#3355FF" },
+      { label: "Åbne i alt", vaerdi: aabne.length, farve: "#181818" },
+    ];
+
+    return (
+      <div style={{ background: "#fff", border: "1px solid #E6E8EC", marginTop: 24, padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+          {/* Fremdriftsring — samme conic-gradient-teknik som kundedashboardet. */}
+          <div
+            style={{
+              width: 132,
+              height: 132,
+              borderRadius: "50%",
+              flex: "none",
+              position: "relative",
+              background: `conic-gradient(#16A34A 0% ${procent}%, #F0F1F4 ${procent}% 100%)`,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                inset: 14,
+                background: "#fff",
+                borderRadius: "50%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em" }}>{procent}%</div>
+              <div style={{ fontSize: 10, color: "#9E9E9E", letterSpacing: "0.06em", textTransform: "uppercase" }}>Færdig</div>
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ fontSize: 15, color: "#4A4A4A", lineHeight: 1.6 }}>
+              {mine.length === 0 ? (
+                "Du har ingen opgaver lige nu."
+              ) : (
+                <>
+                  Du har <strong style={{ color: "#181818" }}>{aabne.length}</strong> åbne og{" "}
+                  <strong style={{ color: "#16A34A" }}>{afsluttede.length}</strong> afsluttede opgaver.
+                  {overskredne > 0 && (
+                    <>
+                      {" "}
+                      <strong style={{ color: "#FF442B" }}>{overskredne} er overskredet.</strong>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Åbne mod afsluttede som én bjælke. */}
+            <div style={{ display: "flex", height: 8, background: "#F0F1F4", marginTop: 16 }}>
+              <div style={{ width: procent + "%", background: "#16A34A" }} title={`Afsluttet: ${afsluttede.length}`} />
+              <div style={{ flex: 1, background: "#C4C7CE" }} title={`Åbne: ${aabne.length}`} />
+            </div>
+
+            <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 20 }}>
+              {felter.map((f) => {
+                const fremhaev = f.label === "Overskredet" && f.vaerdi > 0;
+                return (
+                  <div
+                    key={f.label}
+                    style={{
+                      border: "1px solid " + (fremhaev ? "#FFD7CF" : "#E6E8EC"),
+                      background: fremhaev ? "#FFF3F0" : "#fff",
+                      borderLeft: "3px solid " + f.farve,
+                      padding: "12px 14px",
+                    }}
+                  >
+                    <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", color: f.vaerdi > 0 ? f.farve : "#C4C7CE" }}>
+                      {f.vaerdi}
+                    </div>
+                    <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 4 }}>
+                      {f.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {mine.length > 0 && (
+              <button
+                onClick={() => {
+                  setNav({ type: "mit" });
+                  setPanelId(null);
+                }}
+                style={{
+                  marginTop: 18,
+                  height: 34,
+                  border: "1px solid #E1E4E9",
+                  background: "#fff",
+                  color: "#3355FF",
+                  fontSize: 13,
+                  padding: "0 14px",
+                  cursor: "pointer",
+                }}
+              >
+                Se mine opgaver →
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
