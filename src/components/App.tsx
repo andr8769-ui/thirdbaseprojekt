@@ -2431,26 +2431,17 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   // ================================================================
   function renderForside() {
     const kort = data.dashboard;
-    const medarbejder = !erAdmin(mig.rolle);
     return (
       <div className="tb-pad" style={{ padding: "32px 28px 64px" }}>
-        {medarbejder ? (
-          <>
-            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>
-              Hej {mig.navn.split(" ")[0]}
-            </div>
-            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Dit overblik lige nu.</div>
-            {renderMitOverblik()}
-            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 44 }}>
-              Alle kunder
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>Dashboard</div>
-            <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Status på tværs af alle virksomheder.</div>
-          </>
-        )}
+        {/* Personligt overblik — vises for ALLE roller, også admin, øverst på forsiden. */}
+        <div style={{ fontSize: 32, fontWeight: 600, letterSpacing: "-0.02em" }}>
+          Hej {mig.navn.split(" ")[0]}
+        </div>
+        <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8 }}>Dit overblik lige nu.</div>
+        {renderMitOverblik()}
+        <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 44 }}>
+          Alle kunder
+        </div>
 
         {kort.length === 0 ? (
           <div style={{ marginTop: 40, background: "#fff", border: "1px solid #E6E8EC", padding: "56px 32px", textAlign: "center" }}>
@@ -2472,9 +2463,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     );
   }
 
-  // Personligt overblik på forsiden (medarbejdere): samlet fremdrift, åbne mod
-  // afsluttede, deadlines i dag/denne uge og overskredne tydeligt markeret.
-  // Bygger på det lokale datatræ — ingen ekstra DB-kald, ingen nye afhængigheder.
+  // Personligt overblik på forsiden — vises for ALLE roller, også admin.
+  // Samlet fremdrift, åbne mod afsluttede, deadlines i dag/denne uge og
+  // overskredne tydeligt markeret. Bygger på det lokale datatræ — ingen ekstra
+  // DB-kald, ingen nye afhængigheder, kun eksisterende designtokens.
   function renderMitOverblik() {
     const mine = alleOpgaver().filter((x) => x.o.ansvarlige.indexOf(mig.id) >= 0);
     const afsluttede = mine.filter((x) => x.o.status === "Færdig");
@@ -2494,99 +2486,166 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       { label: "Åbne i alt", vaerdi: aabne.length, farve: "#181818" },
     ];
 
+    const gaaTilMitArbejde = () => {
+      setNav({ type: "mit" });
+      setPanelId(null);
+    };
+
     return (
-      <div style={{ background: "#fff", border: "1px solid #E6E8EC", marginTop: 24, padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E6E8EC",
+          // Brandaccent i toppen — samme greb som kundekortene bruger.
+          borderTop: "3px solid " + (overskredne > 0 ? "#FF442B" : "#181818"),
+          marginTop: 24,
+          padding: 28,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 32, flexWrap: "wrap" }}>
           {/* Fremdriftsring — samme conic-gradient-teknik som kundedashboardet. */}
-          <div
-            style={{
-              width: 132,
-              height: 132,
-              borderRadius: "50%",
-              flex: "none",
-              position: "relative",
-              background: `conic-gradient(#16A34A 0% ${procent}%, #F0F1F4 ${procent}% 100%)`,
-            }}
-          >
+          <div style={{ flex: "none", textAlign: "center" }}>
             <div
               style={{
-                position: "absolute",
-                inset: 14,
-                background: "#fff",
+                width: 148,
+                height: 148,
                 borderRadius: "50%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
+                position: "relative",
+                background: `conic-gradient(#16A34A 0% ${procent}%, #F0F1F4 ${procent}% 100%)`,
               }}
             >
-              <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em" }}>{procent}%</div>
-              <div style={{ fontSize: 10, color: "#9E9E9E", letterSpacing: "0.06em", textTransform: "uppercase" }}>Færdig</div>
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 15,
+                  background: "#fff",
+                  borderRadius: "50%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <div style={{ fontSize: 36, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1 }}>{procent}%</div>
+                <div style={{ fontSize: 10, color: "#9E9E9E", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 5 }}>
+                  Færdig
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12, color: "#9E9E9E", marginTop: 12 }}>
+              {afsluttede.length} af {mine.length} opgaver
             </div>
           </div>
 
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ fontSize: 15, color: "#4A4A4A", lineHeight: 1.6 }}>
+          <div style={{ flex: 1, minWidth: 280 }}>
+            <div style={{ fontSize: 16, color: "#4A4A4A", lineHeight: 1.6 }}>
               {mine.length === 0 ? (
                 "Du har ingen opgaver lige nu."
               ) : (
                 <>
                   Du har <strong style={{ color: "#181818" }}>{aabne.length}</strong> åbne og{" "}
                   <strong style={{ color: "#16A34A" }}>{afsluttede.length}</strong> afsluttede opgaver.
-                  {overskredne > 0 && (
-                    <>
-                      {" "}
-                      <strong style={{ color: "#FF442B" }}>{overskredne} er overskredet.</strong>
-                    </>
-                  )}
                 </>
               )}
             </div>
 
-            {/* Åbne mod afsluttede som én bjælke. */}
-            <div style={{ display: "flex", height: 8, background: "#F0F1F4", marginTop: 16 }}>
+            {/* Åbne mod afsluttede som én bjælke, med forklarende signatur. */}
+            <div style={{ display: "flex", height: 10, background: "#F0F1F4", marginTop: 16 }}>
               <div style={{ width: procent + "%", background: "#16A34A" }} title={`Afsluttet: ${afsluttede.length}`} />
               <div style={{ flex: 1, background: "#C4C7CE" }} title={`Åbne: ${aabne.length}`} />
             </div>
+            <div style={{ display: "flex", gap: 18, marginTop: 9, fontSize: 12, color: "#6E6E6E" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={sx(PRIK("#16A34A", 8))} /> Afsluttet {afsluttede.length}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={sx(PRIK("#C4C7CE", 8))} /> Åbne {aabne.length}
+              </span>
+            </div>
 
-            <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 20 }}>
+            <div className="tb-grid-4" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 22 }}>
               {felter.map((f) => {
-                const fremhaev = f.label === "Overskredet" && f.vaerdi > 0;
+                // Overskredne deadlines markeres tydeligt: rød flade, rød kant og rød label.
+                const alarm = f.label === "Overskredet" && f.vaerdi > 0;
                 return (
-                  <div
+                  <button
                     key={f.label}
+                    onClick={gaaTilMitArbejde}
+                    title="Se mine opgaver"
                     style={{
-                      border: "1px solid " + (fremhaev ? "#FFD7CF" : "#E6E8EC"),
-                      background: fremhaev ? "#FFF3F0" : "#fff",
+                      textAlign: "left",
+                      font: "inherit",
+                      cursor: "pointer",
+                      border: "1px solid " + (alarm ? "#FFD7CF" : "#E6E8EC"),
+                      background: alarm ? "#FFF3F0" : "#fff",
                       borderLeft: "3px solid " + f.farve,
-                      padding: "12px 14px",
+                      padding: "14px 16px",
                     }}
                   >
-                    <div style={{ fontSize: 26, fontWeight: 600, letterSpacing: "-0.02em", color: f.vaerdi > 0 ? f.farve : "#C4C7CE" }}>
+                    <div
+                      style={{
+                        fontSize: 32,
+                        fontWeight: 600,
+                        letterSpacing: "-0.03em",
+                        lineHeight: 1,
+                        color: f.vaerdi > 0 ? f.farve : "#C4C7CE",
+                      }}
+                    >
                       {f.vaerdi}
                     </div>
-                    <div style={{ fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", color: "#9E9E9E", marginTop: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                        color: alarm ? "#B4291A" : "#9E9E9E",
+                        fontWeight: alarm ? 700 : 400,
+                        marginTop: 6,
+                      }}
+                    >
                       {f.label}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
+            {overskredne > 0 && (
+              <div
+                style={{
+                  marginTop: 14,
+                  border: "1px solid #FFD7CF",
+                  background: "#FFF3F0",
+                  color: "#B4291A",
+                  fontSize: 13.5,
+                  padding: "11px 14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <span style={sx(PRIK("#FF442B", 9))} />
+                <span>
+                  <strong>
+                    {overskredne} {overskredne === 1 ? "opgave har" : "opgaver har"} overskredet deadline
+                  </strong>{" "}
+                  — de ligger øverst under Mit arbejde.
+                </span>
+              </div>
+            )}
+
             {mine.length > 0 && (
               <button
-                onClick={() => {
-                  setNav({ type: "mit" });
-                  setPanelId(null);
-                }}
+                onClick={gaaTilMitArbejde}
                 style={{
                   marginTop: 18,
-                  height: 34,
-                  border: "1px solid #E1E4E9",
-                  background: "#fff",
-                  color: "#3355FF",
-                  fontSize: 13,
-                  padding: "0 14px",
+                  height: 36,
+                  border: 0,
+                  background: "#181818",
+                  color: "#fff",
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  padding: "0 16px",
                   cursor: "pointer",
                 }}
               >
