@@ -100,6 +100,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [redigerDeadline, setRedigerDeadline] = useState<string | null>(null);
   const [datoFejl, setDatoFejl] = useState<string | null>(null);
   const escRef = useRef(false);
+  // Har brugeren rørt deadline-editoren? Styrer om et forudfyldt forslag må gemmes.
+  const roertRef = useRef(false);
   useEffect(() => {
     setDatoFejl(null);
   }, [panelId]);
@@ -1749,20 +1751,33 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             {redigerDeadline === o.id ? (
               <input
                 type="date"
-                defaultValue={o.slut || ""}
+                // Har opgaven ingen deadline, foreslås i dag + 7 dage, så den kan
+                // accepteres med ét tryk. Forslaget GEMMES først når man aktivt
+                // bekræfter (vælger dato eller trykker Enter) — se onBlur nedenfor.
+                defaultValue={o.slut || plusDage(IDAG, 7)}
                 autoFocus
-                onChange={(e) => commitDeadline(o, e.target.value)}
+                onChange={(e) => {
+                  roertRef.current = true;
+                  commitDeadline(o, e.target.value);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     escRef.current = true;
                     setRedigerDeadline(null);
                   } else if (e.key === "Enter") {
+                    // Enter = eksplicit accept, også af et urørt forslag.
                     commitDeadline(o, (e.target as HTMLInputElement).value);
                   }
                 }}
                 onBlur={(e) => {
                   if (escRef.current) {
                     escRef.current = false;
+                    return;
+                  }
+                  // Klikker man væk uden at røre forslaget, gemmes intet — så en
+                  // opgave uden deadline får ikke sat én ved et uheld.
+                  if (!roertRef.current) {
+                    setRedigerDeadline(null);
                     return;
                   }
                   commitDeadline(o, e.target.value);
@@ -1773,9 +1788,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               <span
                 onClick={() => {
                   setDatoFejl(null);
+                  roertRef.current = false;
                   setRedigerDeadline(o.id);
                 }}
-                title="Klik for at ændre deadline"
+                title={o.slut ? "Klik for at ændre deadline" : "Klik for at sætte deadline"}
                 style={{ cursor: "pointer" }}
               >
                 {dtoTekst(o.slut)}
@@ -2096,6 +2112,27 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   style={{ border: "1px solid #E1E4E9", background: "#fff", fontSize: 13, padding: "4px 6px", color: deadlineFarve(o.status, o.slut) }}
                 />
               </div>
+              {/* Har opgaven ingen datoer, tilbydes standardperioden i dag → +7 dage
+                  som ét klik. Felterne står tomme indtil da, så der aldrig ser ud
+                  til at være en deadline uden at der er en. Begge felter kan frit
+                  ændres bagefter. */}
+              {!o.start && !o.slut && (
+                <button
+                  onClick={() => gemDatoer(o, IDAG, plusDage(IDAG, 7))}
+                  style={{
+                    marginTop: 8,
+                    height: 30,
+                    border: "1px solid #E1E4E9",
+                    background: "#fff",
+                    color: "#3355FF",
+                    fontSize: 12.5,
+                    padding: "0 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Sæt deadline: i dag → +7 dage
+                </button>
+              )}
               {datoFejl && <div style={{ fontSize: 12, color: "#B4291A", marginTop: 6 }}>{datoFejl}</div>}
             </div>
           </div>
