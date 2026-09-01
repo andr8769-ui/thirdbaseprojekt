@@ -119,6 +119,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [modalFarve, setModalFarve] = useState<string>(KUNDE_FARVER[0]);
   const [udfoldet, setUdfoldet] = useState<Record<string, boolean>>({});
   const [foldet, setFoldet] = useState<Record<string, boolean>>({});
+  // "Afsluttede opgaver"-sektionen pr. board — foldet sammen som standard.
+  const [visAfsluttede, setVisAfsluttede] = useState<Record<string, boolean>>({});
 
   // Mobil off-canvas drawer (kun < 768px; burgeren er display:none på desktop, så
   // denne state ændres aldrig på desktop → desktop-layoutet er 100% uberørt).
@@ -1380,11 +1382,22 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   }
 
   function renderTabel(b: BoardDTO) {
+    // Afsluttede opgaver forlader den aktive liste og samles i egen sektion nederst.
+    // Beregnes ud fra det lokale (optimistiske) datatræ, så et statusskifte til
+    // "Færdig" flytter opgaven med det samme — uden reload.
+    const afsluttede: { o: OpgaveDTO; g: GruppeDTO }[] = [];
+    b.grupper.forEach((g) =>
+      g.opgaver.filter(passerFilter).forEach((o) => {
+        if (o.status === "Færdig") afsluttede.push({ o, g });
+      }),
+    );
+    const afsluttetAaben = !!visAfsluttede[b.id];
+
     return (
       <div className="tb-pad" style={{ padding: "24px 28px 80px", minWidth: 1180 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           {b.grupper.map((g) => {
-            const synlige = g.opgaver.filter(passerFilter);
+            const synlige = g.opgaver.filter(passerFilter).filter((o) => o.status !== "Færdig");
             const total = Math.max(synlige.length, 1);
             const gaaben = !foldet[g.id];
             return (
@@ -1460,6 +1473,79 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               </div>
             );
           })}
+
+          {/* ---------- Afsluttede opgaver ---------- */}
+          {afsluttede.length > 0 && (
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 0 10px" }}>
+                <button
+                  onClick={() => setVisAfsluttede((v) => ({ ...v, [b.id]: !afsluttetAaben }))}
+                  style={{ background: "transparent", border: 0, fontSize: 11, cursor: "pointer", padding: 0, width: 14, color: "#16A34A" }}
+                >
+                  {afsluttetAaben ? "▾" : "▸"}
+                </button>
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#16A34A" }}>Afsluttede opgaver</div>
+                <div style={{ fontSize: 12, color: "#9E9E9E" }}>{afsluttede.length}</div>
+              </div>
+
+              {afsluttetAaben && (
+                <div style={{ background: "#fff", border: "1px solid #E6E8EC", borderLeft: "4px solid #16A34A" }}>
+                  {afsluttede.map(({ o, g }) => (
+                    <div
+                      key={o.id}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "minmax(300px,1fr) 190px 150px 130px",
+                        alignItems: "center",
+                        borderBottom: "1px solid #F0F1F4",
+                        minHeight: 46,
+                      }}
+                    >
+                      <div
+                        onClick={() => setPanelId(o.id)}
+                        title="Åbn opgaven"
+                        style={{ padding: "10px 16px", minWidth: 0, cursor: "pointer" }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 14,
+                            color: "#9E9E9E",
+                            textDecoration: "line-through",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {o.navn}
+                        </span>
+                      </div>
+                      <div style={{ padding: "10px 12px", fontSize: 12.5, color: "#9E9E9E", borderLeft: "1px solid #F0F1F4" }}>{g.navn}</div>
+                      <div style={{ padding: "10px 12px", fontSize: 12.5, color: "#9E9E9E", borderLeft: "1px solid #F0F1F4" }}>
+                        {dtoTekst(o.slut)}
+                      </div>
+                      <div style={{ padding: "6px 12px", borderLeft: "1px solid #F0F1F4" }}>
+                        <button
+                          onClick={() => doSetStatus(o.id, "I gang")}
+                          title="Sæt tilbage i gang"
+                          style={{
+                            height: 30,
+                            border: "1px solid #E1E4E9",
+                            background: "#fff",
+                            color: "#3355FF",
+                            fontSize: 12.5,
+                            padding: "0 10px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Genåbn
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
