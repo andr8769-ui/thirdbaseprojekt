@@ -33,10 +33,21 @@ const TOM: NytProjektInput = {
   udgangspunktHvorTabes: "",
 };
 
-export default function KundeprojektForm({ brugere, kunder }: { brugere: Bruger[]; kunder: Kunde[] }) {
+export default function KundeprojektForm({
+  brugere,
+  kunder,
+  laastKunde,
+}: {
+  brugere: Bruger[];
+  kunder: Kunde[];
+  /** Sat når formularen åbnes fra en kundes sidebar. Kunden er da forudvalgt og låst. */
+  laastKunde?: Kunde | null;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [v, setV] = useState<NytProjektInput>(TOM);
+  const [v, setV] = useState<NytProjektInput>(
+    laastKunde ? { ...TOM, kundeId: laastKunde.id, kundeNavn: laastKunde.navn } : TOM,
+  );
   const [fejl, setFejl] = useState<string | null>(null);
 
   const saet = (felt: keyof NytProjektInput, vaerdi: string) => setV((x) => ({ ...x, [felt]: vaerdi }));
@@ -118,6 +129,13 @@ export default function KundeprojektForm({ brugere, kunder }: { brugere: Bruger[
           Forløbet oprettes ud fra The Thirdbase Model. Skabelonen kopieres ind som den er, med{" "}
           {AFDAEKNING.length} afdækningsaktiviteter, {BASER.length} baser, {antalSteps} steps, {antalTjek}{" "}
           tjeklistepunkter og {antalKpi} KPI'er. Du udfylder stamdata her og resten undervejs.
+          {laastKunde && (
+            <>
+              {" "}
+              Projektet oprettes under <strong style={{ color: "#181818" }}>{laastKunde.navn}</strong> og vises i
+              sidebaren under den kunde.
+            </>
+          )}
         </div>
 
         {fejl && (
@@ -132,18 +150,36 @@ export default function KundeprojektForm({ brugere, kunder }: { brugere: Bruger[
             {felt("CVR", "cvr", "text", "8 cifre")}
             <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
               Knyt til eksisterende kunde
-              <select
-                value={v.kundeId}
-                onChange={(e) => saet("kundeId", e.target.value)}
-                style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
-              >
-                <option value="">Ingen</option>
-                {kunder.map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.navn}
-                  </option>
-                ))}
-              </select>
+              {laastKunde ? (
+                <div
+                  style={{
+                    height: 40,
+                    border: "1px solid #DDE0E5",
+                    background: "#F7F8F9",
+                    padding: "0 12px",
+                    fontSize: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    color: "#4A4A4A",
+                  }}
+                  title="Kunden er valgt fra sidebaren og kan ikke ændres her"
+                >
+                  {laastKunde.navn}
+                </div>
+              ) : (
+                <select
+                  value={v.kundeId}
+                  onChange={(e) => saet("kundeId", e.target.value)}
+                  style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
+                >
+                  <option value="">Ingen</option>
+                  {kunder.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.navn}
+                    </option>
+                  ))}
+                </select>
+              )}
             </label>
           </>
         ))}
@@ -234,7 +270,7 @@ export default function KundeprojektForm({ brugere, kunder }: { brugere: Bruger[
             deaktiveret={pending}
           />
           <a
-            href="/kundeprojekter"
+            href={laastKunde ? "/" : "/kundeprojekter"}
             style={{
               height: 34,
               padding: "0 14px",

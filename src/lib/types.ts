@@ -51,6 +51,9 @@ export type GruppeDTO = { id: string; navn: string; farve: string; opgaver: Opga
 
 export type BoardDTO = { id: string; navn: string; creatorId: string | null; grupper: GruppeDTO[] };
 
+// Kundeprojekt vist i sidebaren under kunden. Kun det UI'et skal bruge.
+export type KundeprojektLinkDTO = { id: string; navn: string; status: string };
+
 export type KundeDTO = {
   id: string;
   navn: string;
@@ -59,6 +62,7 @@ export type KundeDTO = {
   farve: string;
   creatorId: string | null;
   boards: BoardDTO[];
+  kundeprojekter: KundeprojektLinkDTO[];
 };
 
 export type NotiDTO = { id: string; tekst: string; tid: string; farve: string; read: boolean };

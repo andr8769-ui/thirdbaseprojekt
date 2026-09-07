@@ -34,6 +34,29 @@ export default function KundeprojektListe({
     });
   }
 
+  // Grupperet pr. tilknyttet kunde, med en samlegruppe til dem uden kunde til
+  // sidst. Rækkefølgen følger den rækkefølge projekterne kommer i fra serveren.
+  const grupper = (() => {
+    const medKunde = new Map<string, { noegle: string; titel: string; projekter: KundeprojektKortDTO[] }>();
+    const udenKunde: KundeprojektKortDTO[] = [];
+    for (const p of projekter) {
+      if (p.tilknyttetKundeId) {
+        const g = medKunde.get(p.tilknyttetKundeId) ?? {
+          noegle: p.tilknyttetKundeId,
+          titel: p.tilknyttetKundeNavn || "Ukendt kunde",
+          projekter: [],
+        };
+        g.projekter.push(p);
+        medKunde.set(p.tilknyttetKundeId, g);
+      } else {
+        udenKunde.push(p);
+      }
+    }
+    const ud = Array.from(medKunde.values()).sort((a, b) => a.titel.localeCompare(b.titel, "da"));
+    if (udenKunde.length > 0) ud.push({ noegle: "uden-kunde", titel: "Uden kunde", projekter: udenKunde });
+    return ud;
+  })();
+
   return (
     <div style={{ minHeight: "100vh", background: "#F7F8F9", color: "#181818" }}>
       <div className="tb-pad" style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 80px" }}>
@@ -82,48 +105,63 @@ export default function KundeprojektListe({
             </div>
           </div>
         ) : (
-          <div className="tb-kort-grid" style={{ marginTop: 32 }}>
-            {projekter.map((p) => {
-              const procent =
-                p.antalTjekpunkter > 0 ? Math.round((p.antalAfkrydsede / p.antalTjekpunkter) * 100) : 0;
-              return (
-                <div key={p.id} style={{ background: "#fff", border: RAMME, borderTop: "3px solid #FF442B", padding: 20 }}>
-                  <a
-                    href={`/kundeprojekter/${p.id}`}
-                    style={{ fontSize: 17, fontWeight: 600, color: "#181818", textDecoration: "none" }}
-                  >
-                    {p.kundeNavn}
-                  </a>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    <StatusMaerkat status={p.samletStatus} />
-                    <span style={{ fontSize: 12, color: "#6E6E6E" }}>
-                      Nuværende {p.nuvaerendeBase === "Home" ? "Home" : baseEtiket(Number(p.nuvaerendeBase) || 1)}
-                    </span>
-                  </div>
+          grupper.map((g) => (
+            <div key={g.noegle} style={{ marginTop: 32 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#9E9E9E",
+                  marginBottom: 14,
+                }}
+              >
+                {g.titel} <span style={{ color: "#C4C7CE" }}>{g.projekter.length}</span>
+              </div>
+              <div className="tb-kort-grid">
+                {g.projekter.map((p) => {
+                  const procent =
+                    p.antalTjekpunkter > 0 ? Math.round((p.antalAfkrydsede / p.antalTjekpunkter) * 100) : 0;
+                  return (
+                    <div key={p.id} style={{ background: "#fff", border: RAMME, borderTop: "3px solid #FF442B", padding: 20 }}>
+                      <a
+                        href={`/kundeprojekter/${p.id}`}
+                        style={{ fontSize: 17, fontWeight: 600, color: "#181818", textDecoration: "none" }}
+                      >
+                        {p.kundeNavn}
+                      </a>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                        <StatusMaerkat status={p.samletStatus} />
+                        <span style={{ fontSize: 12, color: "#6E6E6E" }}>
+                          Nuværende {p.nuvaerendeBase === "Home" ? "Home" : baseEtiket(Number(p.nuvaerendeBase) || 1)}
+                        </span>
+                      </div>
 
-                  <div style={{ fontSize: 12, color: "#9E9E9E", marginTop: 14 }}>
-                    Tjeklister {p.antalAfkrydsede} af {p.antalTjekpunkter}
-                  </div>
-                  <div style={{ display: "flex", height: 8, background: "#F0F1F4", marginTop: 6 }}>
-                    <div style={{ width: procent + "%", background: "#16A34A" }} />
-                  </div>
+                      <div style={{ fontSize: 12, color: "#9E9E9E", marginTop: 14 }}>
+                        Tjeklister {p.antalAfkrydsede} af {p.antalTjekpunkter}
+                      </div>
+                      <div style={{ display: "flex", height: 8, background: "#F0F1F4", marginTop: 6 }}>
+                        <div style={{ width: procent + "%", background: "#16A34A" }} />
+                      </div>
 
-                  <div style={{ fontSize: 12.5, color: "#6E6E6E", marginTop: 14, lineHeight: 1.7 }}>
-                    <div>Projektansvarlig {p.projektansvarligNavn || "ikke angivet"}</div>
-                    <div>
-                      Periode {p.projektstart || "ikke sat"} til {p.forventetAfslutning || "ikke sat"}
+                      <div style={{ fontSize: 12.5, color: "#6E6E6E", marginTop: 14, lineHeight: 1.7 }}>
+                        <div>Projektansvarlig {p.projektansvarligNavn || "ikke angivet"}</div>
+                        <div>
+                          Periode {p.projektstart || "ikke sat"} til {p.forventetAfslutning || "ikke sat"}
+                        </div>
+                      </div>
+
+                      {erAdministrator && (
+                        <div style={{ marginTop: 16 }}>
+                          <Knap tekst="Slet" variant="fare" onClick={() => setSlet(p)} deaktiveret={pending} />
+                        </div>
+                      )}
                     </div>
-                  </div>
-
-                  {erAdministrator && (
-                    <div style={{ marginTop: 16 }}>
-                      <Knap tekst="Slet" variant="fare" onClick={() => setSlet(p)} deaktiveret={pending} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 

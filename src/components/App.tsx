@@ -795,6 +795,51 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                       >
                         + Nyt board
                       </button>
+
+                      {/* Kundens kundeprojekter, samme niveau og stil som boards.
+                          De fører til en anden route, så de er links og har ingen
+                          aktiv-markering her i appen. */}
+                      {k.kundeprojekter.map((kp) => (
+                        <a
+                          key={kp.id}
+                          href={`/kundeprojekter/${kp.id}`}
+                          title={`Kundeprojekt · ${kp.status}`}
+                          style={{
+                            display: "block",
+                            textAlign: "left",
+                            background: "transparent",
+                            border: 0,
+                            fontSize: 12.5,
+                            padding: "6px 8px",
+                            cursor: "pointer",
+                            color: "#9E9E9E",
+                            textDecoration: "none",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {kp.navn}
+                        </a>
+                      ))}
+                      {erAdmin(mig.rolle) && (
+                        <a
+                          href={`/kundeprojekter/nyt?kunde=${encodeURIComponent(k.id)}`}
+                          style={{
+                            display: "block",
+                            textAlign: "left",
+                            background: "transparent",
+                            border: 0,
+                            color: "#6E6E6E",
+                            fontSize: 12,
+                            padding: "6px 8px",
+                            cursor: "pointer",
+                            textDecoration: "none",
+                          }}
+                        >
+                          + Nyt kundeprojekt
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2943,6 +2988,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
       const nyKunde: KundeDTO = {
         id: kid, navn, kort, branche: "Ny kunde", farve: modalFarve, creatorId: mig.id,
         boards: [{ id: bid, navn: "Onboarding", creatorId: mig.id, grupper: tmpGroups() }],
+        kundeprojekter: [],
       };
       const nyKort: DashboardKortDTO = {
         id: kid, navn, kort, farve: modalFarve, boards: 1, opgaver: 0, faerdige: 0, procent: 0, overskredne: 0, foersteBoardId: bid, naeste: [],
