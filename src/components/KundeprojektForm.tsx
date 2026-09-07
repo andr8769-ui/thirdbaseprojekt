@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { opretKundeprojekt, type NytProjektInput } from "@/app/kundeprojekter/actions";
 import { CRM_MODENHED, BASER, AFDAEKNING } from "@/lib/thirdbase-template";
@@ -49,11 +49,34 @@ export default function KundeprojektForm({
     laastKunde ? { ...TOM, kundeId: laastKunde.id, kundeNavn: laastKunde.navn } : TOM,
   );
   const [fejl, setFejl] = useState<string | null>(null);
+  // Husker hvad vi selv har auto-udfyldt, så et skift af kunde må rette det,
+  // mens noget brugeren selv har skrevet får lov at stå.
+  const autoNavnRef = useRef<string>(laastKunde ? laastKunde.navn : "");
 
   const saet = (felt: keyof NytProjektInput, vaerdi: string) => setV((x) => ({ ...x, [felt]: vaerdi }));
 
+  /** Vælg kunde i systemet. Udfylder tekstfeltet Kunde med kundens navn, men
+   *  kun hvis brugeren ikke selv har skrevet noget der. Egen tekst overskrives
+   *  aldrig. */
+  const vaelgKunde = (id: string) =>
+    setV((x) => {
+      const kunde = kunder.find((k) => k.id === id);
+      const skalUdfyldes = !x.kundeNavn.trim() || x.kundeNavn === autoNavnRef.current;
+      const navn = kunde && skalUdfyldes ? kunde.navn : x.kundeNavn;
+      autoNavnRef.current = kunde && skalUdfyldes ? kunde.navn : autoNavnRef.current;
+      return { ...x, kundeId: id, kundeNavn: navn };
+    });
+
   function opret() {
     setFejl(null);
+    if (!v.kundeId) {
+      setFejl("Vælg hvilken kunde i systemet projektet hører til.");
+      return;
+    }
+    if (!v.kundeNavn.trim()) {
+      setFejl("Angiv et kundenavn.");
+      return;
+    }
     start(async () => {
       const res = await opretKundeprojekt(v);
       if (res.ok && res.id) router.push(`/kundeprojekter/${res.id}`);
@@ -146,10 +169,8 @@ export default function KundeprojektForm({
 
         {boks("Kunde", (
           <>
-            {felt("Kunde", "kundeNavn", "text", "Virksomhedsnavn")}
-            {felt("CVR", "cvr", "text", "8 cifre")}
             <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
-              Knyt til eksisterende kunde
+              Kunde i systemet
               {laastKunde ? (
                 <div
                   style={{
@@ -169,10 +190,18 @@ export default function KundeprojektForm({
               ) : (
                 <select
                   value={v.kundeId}
-                  onChange={(e) => saet("kundeId", e.target.value)}
-                  style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
+                  onChange={(e) => vaelgKunde(e.target.value)}
+                  style={{
+                    height: 40,
+                    border: "1px solid " + (v.kundeId ? "#DDE0E5" : "#F3C9C2"),
+                    background: "#fff",
+                    padding: "0 10px",
+                    fontSize: 14,
+                    fontFamily: "inherit",
+                    color: v.kundeId ? "#181818" : "#9E9E9E",
+                  }}
                 >
-                  <option value="">Ingen</option>
+                  <option value="">Vælg kunde</option>
                   {kunder.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.navn}
@@ -180,7 +209,12 @@ export default function KundeprojektForm({
                   ))}
                 </select>
               )}
+              <span style={{ fontSize: 12.5, color: "#6E6E6E", fontWeight: 400, lineHeight: 1.5 }}>
+                Projektet lægger sig under kunden i menuen til venstre, ligesom et board.
+              </span>
             </label>
+            {felt("Kunde", "kundeNavn", "text", "Virksomhedsnavn")}
+            {felt("CVR", "cvr", "text", "8 cifre")}
           </>
         ))}
 
