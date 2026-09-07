@@ -24,6 +24,7 @@ export async function loadKundeprojekter(): Promise<KundeprojektKortDTO[]> {
           projektstart: true,
           forventetAfslutning: true,
           projektansvarlig: { select: { name: true } },
+          customer: { select: { id: true, name: true } },
           baser: { select: { tjekliste: { select: { afkrydset: true } } } },
         },
       }),
@@ -35,6 +36,8 @@ export async function loadKundeprojekter(): Promise<KundeprojektKortDTO[]> {
     return {
       id: p.id,
       kundeNavn: p.kundeNavn,
+      tilknyttetKundeId: p.customer?.id ?? null,
+      tilknyttetKundeNavn: p.customer?.name ?? null,
       nuvaerendeBase: p.nuvaerendeBase,
       samletStatus: p.samletStatus,
       projektansvarligNavn: p.projektansvarlig?.name ?? null,

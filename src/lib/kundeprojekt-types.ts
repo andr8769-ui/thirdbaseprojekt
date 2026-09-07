@@ -210,6 +210,9 @@ export type KpiOverblikDTO = {
 export type KundeprojektKortDTO = {
   id: string;
   kundeNavn: string;
+  /** Den Customer projektet er koblet til, hvis nogen. Bruges til gruppering. */
+  tilknyttetKundeId: string | null;
+  tilknyttetKundeNavn: string | null;
   nuvaerendeBase: string;
   samletStatus: string;
   projektansvarligNavn: string | null;

@@ -21,6 +21,12 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
         industry: true,
         color: true,
         creatorId: true,
+        // Kundeprojekter vises i sidebaren under kundens boards. Kun de tre
+        // felter UI'et bruger hentes.
+        clientProjects: {
+          orderBy: { createdAt: "asc" },
+          select: { id: true, kundeNavn: true, samletStatus: true },
+        },
         boards: {
           orderBy: { position: "asc" },
           select: {
@@ -80,6 +86,7 @@ export async function loadAppData(currentUserId: string): Promise<AppData> {
     branche: k.industry,
     farve: k.color,
     creatorId: k.creatorId,
+    kundeprojekter: k.clientProjects.map((p) => ({ id: p.id, navn: p.kundeNavn, status: p.samletStatus })),
     boards: k.boards.map((b) => ({
       id: b.id,
       navn: b.name,
