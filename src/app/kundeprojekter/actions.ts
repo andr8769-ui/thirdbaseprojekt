@@ -97,7 +97,17 @@ export async function opretKundeprojekt(input: NytProjektInput): Promise<Resulta
   if (kundeNavn.length > 120) return { ok: false, reason: "Kundenavnet må højst være 120 tegn." };
 
   const projektansvarligId = rens(input.projektansvarligId) || null;
-  const kundeId = rens(input.kundeId) || null;
+
+  // Kunden er påkrævet, så projektet altid kan lægge sig under en kunde i
+  // sidebaren. Eksisterende projekter uden kunde bevares og kan flyttes fra
+  // detaljesiden, men nye kan ikke længere ende uden kunde.
+  const kundeId = rens(input.kundeId);
+  if (!kundeId) return { ok: false, reason: "Vælg hvilken kunde i systemet projektet hører til." };
+  const kundeFindes = await withDbRetry(
+    () => prisma.customer.findUnique({ where: { id: kundeId }, select: { id: true } }),
+    "kundeprojekt:opret:kunde",
+  );
+  if (!kundeFindes) return { ok: false, reason: "Den valgte kunde findes ikke." };
 
   const projekt = await withDbRetry(
     () =>
@@ -190,6 +200,43 @@ export async function opretKundeprojekt(input: NytProjektInput): Promise<Resulta
 
   revalidatePath("/kundeprojekter");
   return { ok: true, id: projekt.id };
+}
+
+/**
+ * Knyt kundeprojektet til en kunde, eller flyt det til en anden. Kun admin.
+ *
+ * Tom streng fjerner tilknytningen igen. Ud over de sædvanlige stier
+ * revalideres forsiden, fordi sidebaren dér viser projekterne under hver
+ * kunde. Det er en sjælden administrativ handling, så det påvirker ikke
+ * den hyppige mutationssti.
+ */
+export async function opdaterKundetilknytning(projektId: string, kundeId: string): Promise<Resultat> {
+  const me = await bruger();
+  if (!erAdmin(me.role)) return { ok: false, reason: "Kun administratorer kan ændre kundetilknytningen." };
+
+  const projekt = await withDbRetry(
+    () => prisma.clientProject.findUnique({ where: { id: projektId }, select: { id: true } }),
+    "kundeprojekt:knyt:read",
+  );
+  if (!projekt) return { ok: false, reason: "Kundeprojektet findes ikke." };
+
+  const valgt = rens(kundeId);
+  if (valgt) {
+    const kunde = await withDbRetry(
+      () => prisma.customer.findUnique({ where: { id: valgt }, select: { id: true } }),
+      "kundeprojekt:knyt:kunde",
+    );
+    if (!kunde) return { ok: false, reason: "Den valgte kunde findes ikke." };
+  }
+
+  await withDbRetry(
+    () => prisma.clientProject.update({ where: { id: projektId }, data: { customerId: valgt || null } }),
+    "kundeprojekt:knyt",
+  );
+
+  opdaterSti(projektId);
+  revalidatePath("/");
+  return { ok: true };
 }
 
 /** Slet et kundeprojekt med alt indhold (kun admin). Cascade rydder resten. */

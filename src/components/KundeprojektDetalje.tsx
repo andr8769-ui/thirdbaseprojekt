@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   opdaterStamdata,
+  opdaterKundetilknytning,
   opdaterAfdaekning,
   opdaterStep,
   opdaterKpi,
@@ -74,7 +75,15 @@ const FANER: { key: Fane; navn: string }[] = [
 
 const BASE_ACCENT: Record<number, string> = { 1: "#FF442B", 2: "#3355FF", 3: "#7B61FF", 4: "#16A34A" };
 
-export default function KundeprojektDetalje({ projekt }: { projekt: KundeprojektDTO }) {
+export default function KundeprojektDetalje({
+  projekt,
+  kunder,
+  erAdministrator,
+}: {
+  projekt: KundeprojektDTO;
+  kunder: { id: string; navn: string }[];
+  erAdministrator: boolean;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [fane, setFane] = useState<Fane>("afdaekning");
@@ -257,6 +266,51 @@ export default function KundeprojektDetalje({ projekt }: { projekt: Kundeprojekt
             <div style={{ fontSize: 13, padding: "6px 0", color: "#4A4A4A" }}>
               {projekt.projektansvarligNavn || "ikke angivet"}
             </div>
+          </div>
+
+          {/* Kundetilknytning styrer hvor projektet ligger i sidebaren. Kun
+              admin må ændre den, og serveren håndhæver det samme. */}
+          <div>
+            <Etiket tekst="Kunde i systemet" style={{ marginBottom: 6 }} />
+            {erAdministrator ? (
+              <>
+                <select
+                  value={projekt.kundeId ?? ""}
+                  disabled={pending}
+                  onChange={(e) =>
+                    kald(
+                      () => opdaterKundetilknytning(projekt.id, e.target.value),
+                      e.target.value
+                        ? "Projektet ligger nu under den valgte kunde i menuen til venstre."
+                        : "Kundetilknytningen er fjernet. Projektet ligger nu under Uden kunde.",
+                    )
+                  }
+                  style={{
+                    width: "100%",
+                    height: 32,
+                    border: "1px solid " + (projekt.kundeId ? "#E1E4E9" : "#F3C9C2"),
+                    background: "#fff",
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    color: projekt.kundeId ? "#181818" : "#9E9E9E",
+                  }}
+                >
+                  <option value="">Ingen kunde valgt</option>
+                  {kunder.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.navn}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 12, color: "#6E6E6E", marginTop: 6, lineHeight: 1.5 }}>
+                  Bestemmer hvilken kunde projektet ligger under i menuen til venstre.
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, padding: "6px 0", color: "#4A4A4A" }}>
+                {kunder.find((k) => k.id === projekt.kundeId)?.navn || "ikke tilknyttet en kunde"}
+              </div>
+            )}
           </div>
         </div>
 

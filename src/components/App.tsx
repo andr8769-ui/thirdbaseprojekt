@@ -778,24 +778,6 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                           </div>
                         );
                       })}
-                      <button
-                        onClick={() => {
-                          setModal({ type: "board", kundeId: k.id });
-                          setModalVaerdi("");
-                        }}
-                        style={{
-                          textAlign: "left",
-                          background: "transparent",
-                          border: 0,
-                          color: "#6E6E6E",
-                          fontSize: 12,
-                          padding: "6px 8px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        + Nyt board
-                      </button>
-
                       {/* Kundens kundeprojekter, samme niveau og stil som boards.
                           De fører til en anden route, så de er links og har ingen
                           aktiv-markering her i appen. */}
@@ -819,9 +801,27 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                             whiteSpace: "nowrap",
                           }}
                         >
+                          <span style={sx(PRIK("#7A7A7A", 5, " display:inline-block; margin-right:7px; vertical-align:middle;"))} />
                           {kp.navn}
                         </a>
                       ))}
+                      <button
+                        onClick={() => {
+                          setModal({ type: "board", kundeId: k.id });
+                          setModalVaerdi("");
+                        }}
+                        style={{
+                          textAlign: "left",
+                          background: "transparent",
+                          border: 0,
+                          color: "#6E6E6E",
+                          fontSize: 12,
+                          padding: "6px 8px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        + Nyt board
+                      </button>
                       {erAdmin(mig.rolle) && (
                         <a
                           href={`/kundeprojekter/nyt?kunde=${encodeURIComponent(k.id)}`}
