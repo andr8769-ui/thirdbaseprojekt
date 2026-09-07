@@ -1,0 +1,256 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { opretKundeprojekt, type NytProjektInput } from "@/app/kundeprojekter/actions";
+import { CRM_MODENHED, BASER, AFDAEKNING } from "@/lib/thirdbase-template";
+import { Sidehoved, Besked, Knap, RAMME } from "@/components/KundeprojektFelter";
+
+type Bruger = { id: string; navn: string };
+type Kunde = { id: string; navn: string };
+
+const TOM: NytProjektInput = {
+  kundeNavn: "",
+  cvr: "",
+  kontaktpersonNavn: "",
+  kontaktpersonTitel: "",
+  kontaktpersonMail: "",
+  kontaktpersonTelefon: "",
+  projektansvarligId: "",
+  deltagere: "",
+  projektstart: "",
+  forventetAfslutning: "",
+  kadence: "",
+  hubspotPortal: "",
+  projektmappe: "",
+  formaal: "",
+  kundeId: "",
+  udgangspunktKanaler: "",
+  udgangspunktLeadsPrMaaned: "",
+  udgangspunktSalgsproces: "",
+  udgangspunktCrmModenhed: "",
+  udgangspunktAutomatisering: "",
+  udgangspunktHvorTabes: "",
+};
+
+export default function KundeprojektForm({ brugere, kunder }: { brugere: Bruger[]; kunder: Kunde[] }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [v, setV] = useState<NytProjektInput>(TOM);
+  const [fejl, setFejl] = useState<string | null>(null);
+
+  const saet = (felt: keyof NytProjektInput, vaerdi: string) => setV((x) => ({ ...x, [felt]: vaerdi }));
+
+  function opret() {
+    setFejl(null);
+    start(async () => {
+      const res = await opretKundeprojekt(v);
+      if (res.ok && res.id) router.push(`/kundeprojekter/${res.id}`);
+      else setFejl(res.reason || "Kundeprojektet kunne ikke oprettes.");
+    });
+  }
+
+  const felt = (label: string, n: keyof NytProjektInput, type?: string, placeholder?: string) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
+      {label}
+      <input
+        type={type || "text"}
+        value={v[n]}
+        onChange={(e) => saet(n, e.target.value)}
+        placeholder={placeholder}
+        style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 12px", fontSize: 14, fontFamily: "inherit" }}
+      />
+    </label>
+  );
+
+  const omraade = (label: string, n: keyof NytProjektInput, placeholder?: string) => (
+    <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
+      {label}
+      <textarea
+        value={v[n]}
+        onChange={(e) => saet(n, e.target.value)}
+        placeholder={placeholder}
+        rows={3}
+        style={{
+          border: "1px solid #DDE0E5",
+          background: "#fff",
+          padding: "10px 12px",
+          fontSize: 14,
+          fontFamily: "inherit",
+          resize: "vertical",
+          lineHeight: 1.5,
+        }}
+      />
+    </label>
+  );
+
+  const boks = (titel: string, children: React.ReactNode) => (
+    <div style={{ background: "#fff", border: RAMME, marginTop: 16 }}>
+      <div
+        style={{
+          padding: "16px 20px",
+          borderBottom: "1px solid #F0F1F4",
+          fontSize: 11,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "#9E9E9E",
+        }}
+      >
+        {titel}
+      </div>
+      <div style={{ padding: 20, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+        {children}
+      </div>
+    </div>
+  );
+
+  const antalSteps = BASER.reduce((n, b) => n + b.steps.length, 0);
+  const antalTjek = BASER.reduce((n, b) => n + b.tjekliste.length, 0);
+  const antalKpi = BASER.reduce((n, b) => n + b.kpier.length, 0);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F7F8F9", color: "#181818" }}>
+      <div className="tb-pad" style={{ maxWidth: 940, margin: "0 auto", padding: "48px 24px 80px" }}>
+        <Sidehoved />
+
+        <div style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.02em" }}>Nyt kundeprojekt</div>
+        <div style={{ fontSize: 15, color: "#6E6E6E", marginTop: 8, maxWidth: "64ch", lineHeight: 1.6 }}>
+          Forløbet oprettes ud fra The Thirdbase Model. Skabelonen kopieres ind som den er, med{" "}
+          {AFDAEKNING.length} afdækningsaktiviteter, {BASER.length} baser, {antalSteps} steps, {antalTjek}{" "}
+          tjeklistepunkter og {antalKpi} KPI'er. Du udfylder stamdata her og resten undervejs.
+        </div>
+
+        {fejl && (
+          <div style={{ marginTop: 20 }}>
+            <Besked tekst={fejl} type="fejl" />
+          </div>
+        )}
+
+        {boks("Kunde", (
+          <>
+            {felt("Kunde", "kundeNavn", "text", "Virksomhedsnavn")}
+            {felt("CVR", "cvr", "text", "8 cifre")}
+            <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
+              Knyt til eksisterende kunde
+              <select
+                value={v.kundeId}
+                onChange={(e) => saet("kundeId", e.target.value)}
+                style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
+              >
+                <option value="">Ingen</option>
+                {kunder.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.navn}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        ))}
+
+        {boks("Kontaktperson hos kunden", (
+          <>
+            {felt("Navn", "kontaktpersonNavn")}
+            {felt("Titel", "kontaktpersonTitel")}
+            {felt("Mail", "kontaktpersonMail", "email")}
+            {felt("Telefon", "kontaktpersonTelefon")}
+          </>
+        ))}
+
+        {boks("Projekt", (
+          <>
+            <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
+              Projektansvarlig hos Thirdbase
+              <select
+                value={v.projektansvarligId}
+                onChange={(e) => saet("projektansvarligId", e.target.value)}
+                style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
+              >
+                <option value="">Ikke valgt</option>
+                {brugere.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.navn}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {felt("Øvrige deltagere", "deltagere", "text", "Navne og roller")}
+            {felt("Projektstart", "projektstart", "date")}
+            {felt("Forventet afslutning", "forventetAfslutning", "date")}
+            {felt("Aftalt kadence for statusmøder", "kadence", "text", "fx hver 14. dag, tirsdag kl. 10")}
+            {felt("HubSpot-portal", "hubspotPortal", "text", "Link eller portal-id")}
+            {felt("Projektmappe", "projektmappe", "text", "Link til drev")}
+          </>
+        ))}
+
+        <div style={{ background: "#fff", border: RAMME, marginTop: 16 }}>
+          <div
+            style={{
+              padding: "16px 20px",
+              borderBottom: "1px solid #F0F1F4",
+              fontSize: 11,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "#9E9E9E",
+            }}
+          >
+            Formål og forventet resultat
+          </div>
+          <div style={{ padding: 20 }}>
+            {omraade("", "formaal", "Beskriv i tre til fem linjer, hvad kunden vil opnå, og hvordan succes ser ud efter forløbet.")}
+          </div>
+        </div>
+
+        {boks("Kundens udgangspunkt", (
+          <>
+            {omraade("Aktive marketingkanaler", "udgangspunktKanaler")}
+            {omraade("Antal leads pr. måned i dag", "udgangspunktLeadsPrMaaned")}
+            {omraade("Salgsproces i dag", "udgangspunktSalgsproces")}
+            <label style={{ display: "flex", flexDirection: "column", gap: 7, fontSize: 13, fontWeight: 500, color: "#4A4A4A" }}>
+              CRM-modenhed
+              <select
+                value={v.udgangspunktCrmModenhed}
+                onChange={(e) => saet("udgangspunktCrmModenhed", e.target.value)}
+                style={{ height: 40, border: "1px solid #DDE0E5", background: "#fff", padding: "0 10px", fontSize: 14, fontFamily: "inherit" }}
+              >
+                <option value="">Ikke valgt</option>
+                {CRM_MODENHED.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {omraade("Automatisering i dag", "udgangspunktAutomatisering")}
+            {omraade("Hvor tabes leads og omsætning i dag", "udgangspunktHvorTabes")}
+          </>
+        ))}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+          <Knap
+            tekst={pending ? "Opretter…" : "Opret kundeprojekt"}
+            variant="primaer"
+            onClick={opret}
+            deaktiveret={pending}
+          />
+          <a
+            href="/kundeprojekter"
+            style={{
+              height: 34,
+              padding: "0 14px",
+              border: "1px solid #E1E4E9",
+              background: "#fff",
+              color: "#4A4A4A",
+              fontSize: 13,
+              display: "inline-flex",
+              alignItems: "center",
+              textDecoration: "none",
+            }}
+          >
+            Annullér
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -630,6 +630,9 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
             >
               Overblik · alle kunder
             </button>
+            <a href="/kundeprojekter" style={{ ...sx(navStil(false)), textDecoration: "none", display: "block" }}>
+              Kundeprojekter
+            </a>
             {erAdmin(mig.rolle) && (
               <a href="/brugere" style={{ ...sx(navStil(false)), textDecoration: "none", display: "block" }}>
                 Brugere
