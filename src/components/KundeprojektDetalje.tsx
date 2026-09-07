@@ -365,8 +365,19 @@ export default function KundeprojektDetalje({ projekt }: { projekt: Kundeprojekt
     if (!b || !skabelon) return <Besked tekst="Basen findes ikke på dette projekt." type="fejl" />;
 
     const accent = BASE_ACCENT[nummer];
+
+    // Samme gate-regel som serveren håndhæver: egen tjekliste skal være
+    // komplet, og for Base 2, 3 og Home derudover den forrige bases.
+    const egetAntal = b.tjekliste.length;
+    const manglerEget = mangler(nummer);
     const forrigeMangler = nummer > 1 ? mangler(nummer - 1) : 0;
-    const gateBlokerer = nummer > 1 && forrigeMangler > 0;
+    const forrigeAntal = nummer > 1 ? (base(nummer - 1)?.tjekliste.length ?? 0) : 0;
+    const gateBesked =
+      manglerEget > 0
+        ? `${baseEtiket(nummer)} kan ikke markeres som Færdig eller godkendes endnu. Der mangler ${manglerEget} af ${egetAntal} punkter i tjeklisten for ${baseEtiket(nummer)}.`
+        : forrigeMangler > 0
+          ? `${baseEtiket(nummer)} kan ikke markeres som Færdig eller godkendes endnu. Der mangler ${forrigeMangler} af ${forrigeAntal} punkter i tjeklisten for ${baseEtiket(nummer - 1)}.`
+          : null;
 
     const K_STEP = "60px minmax(280px,2fr) minmax(200px,1.5fr) 130px 140px 150px";
 
@@ -402,12 +413,9 @@ export default function KundeprojektDetalje({ projekt }: { projekt: Kundeprojekt
             )}
           </div>
 
-          {gateBlokerer && (
+          {gateBesked && (
             <div style={{ marginTop: 18 }}>
-              <Besked
-                tekst={`${baseEtiket(nummer)} kan ikke markeres som Færdig eller godkendes endnu. Der mangler ${forrigeMangler} punkter i tjeklisten for ${baseEtiket(nummer - 1)}.`}
-                type="fejl"
-              />
+              <Besked tekst={gateBesked} type="fejl" />
             </div>
           )}
 
@@ -466,8 +474,8 @@ export default function KundeprojektDetalje({ projekt }: { projekt: Kundeprojekt
           titel={skabelon.tjeklisteOverskrift}
           beskrivelse={
             nummer < 4
-              ? `Alle fem punkter skal være afkrydset, før ${baseEtiket(nummer + 1)} kan markeres som Færdig eller godkendes.`
-              : undefined
+              ? `Alle ${egetAntal} punkter skal være afkrydset, før ${baseEtiket(nummer)} kan markeres som Færdig eller godkendes. De skal desuden være afkrydset, før ${baseEtiket(nummer + 1)} kan markeres som Færdig eller godkendes.`
+              : `Alle ${egetAntal} punkter skal være afkrydset, før ${baseEtiket(nummer)} kan markeres som Færdig eller godkendes.`
           }
           accent={accent}
         >

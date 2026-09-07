@@ -397,36 +397,76 @@ export async function opdaterBaseFelt(id: string, felt: string, vaerdi: string):
  * derfor ikke gated. Afvisningen kommer tilbage som en tydelig besked, så
  * UI'et kan vise hvorfor der ikke skete noget.
  */
-export async function saetBaseStatus(id: string, status: string): Promise<Resultat> {
-  await bruger();
-  if (!gyldigStatus(status)) return { ok: false, reason: "Ugyldig status." };
-
+/**
+ * Gate-reglen, ét sted så status og godkendelse ikke kan komme i utakt.
+ *
+ * En base kan først markeres som Færdig eller godkendes, når
+ *   1) alle punkter i basens EGEN tjekliste er afkrydset, og
+ *   2) for Base 2, Base 3 og Home derudover alle punkter i den FORRIGE
+ *      bases tjekliste er afkrydset.
+ *
+ * Base 1 gates altså af sin egen tjekliste, men har ingen forudgående base.
+ * Beskeden siger præcis hvor mange punkter der mangler og i hvilken base.
+ */
+async function tjekGate(baseId: string, handling: "markeres som Færdig" | "godkendes"): Promise<Resultat> {
   const base = await withDbRetry(
-    () => prisma.projectBase.findUnique({ where: { id }, select: { id: true, nummer: true, projectId: true } }),
-    "kundeprojekt:basestatus:read",
+    () =>
+      prisma.projectBase.findUnique({
+        where: { id: baseId },
+        select: { nummer: true, projectId: true, tjekliste: { select: { afkrydset: true } } },
+      }),
+    "kundeprojekt:gate:egen",
   );
   if (!base) return { ok: false, reason: "Basen findes ikke." };
 
-  if (status === "Færdig" && base.nummer > 1) {
+  const manglerEgen = base.tjekliste.filter((t) => !t.afkrydset).length;
+  if (manglerEgen > 0) {
+    return {
+      ok: false,
+      reason:
+        `${baseEtiket(base.nummer)} kan ikke ${handling} endnu. ` +
+        `Der mangler ${manglerEgen} af ${base.tjekliste.length} punkter i tjeklisten for ${baseEtiket(base.nummer)}.`,
+    };
+  }
+
+  if (base.nummer > 1) {
     const forrige = await withDbRetry(
       () =>
         prisma.projectBase.findFirst({
           where: { projectId: base.projectId, nummer: base.nummer - 1 },
           select: { nummer: true, tjekliste: { select: { afkrydset: true } } },
         }),
-      "kundeprojekt:gate",
+      "kundeprojekt:gate:forrige",
     );
     if (forrige) {
-      const mangler = forrige.tjekliste.filter((t) => !t.afkrydset).length;
-      if (mangler > 0) {
+      const manglerForrige = forrige.tjekliste.filter((t) => !t.afkrydset).length;
+      if (manglerForrige > 0) {
         return {
           ok: false,
           reason:
-            `${baseEtiket(base.nummer)} kan ikke markeres som Færdig endnu. ` +
-            `Der mangler ${mangler} af ${forrige.tjekliste.length} punkter i tjeklisten for ${baseEtiket(forrige.nummer)}.`,
+            `${baseEtiket(base.nummer)} kan ikke ${handling} endnu. ` +
+            `Der mangler ${manglerForrige} af ${forrige.tjekliste.length} punkter i tjeklisten for ${baseEtiket(forrige.nummer)}.`,
         };
       }
     }
+  }
+
+  return { ok: true };
+}
+
+export async function saetBaseStatus(id: string, status: string): Promise<Resultat> {
+  await bruger();
+  if (!gyldigStatus(status)) return { ok: false, reason: "Ugyldig status." };
+
+  const base = await withDbRetry(
+    () => prisma.projectBase.findUnique({ where: { id }, select: { id: true, projectId: true } }),
+    "kundeprojekt:basestatus:read",
+  );
+  if (!base) return { ok: false, reason: "Basen findes ikke." };
+
+  if (status === "Færdig") {
+    const gate = await tjekGate(id, "markeres som Færdig");
+    if (!gate.ok) return gate;
   }
 
   await withDbRetry(() => prisma.projectBase.update({ where: { id }, data: { status } }), "kundeprojekt:basestatus");
@@ -464,27 +504,10 @@ export async function godkendBase(id: string): Promise<Resultat> {
   if (!base) return { ok: false, reason: "Basen findes ikke." };
   if (base.godkendtDato) return { ok: false, reason: `${baseEtiket(base.nummer)} er allerede godkendt.` };
 
-  if (base.nummer > 1) {
-    const forrige = await withDbRetry(
-      () =>
-        prisma.projectBase.findFirst({
-          where: { projectId: base.projectId, nummer: base.nummer - 1 },
-          select: { nummer: true, tjekliste: { select: { afkrydset: true } } },
-        }),
-      "kundeprojekt:godkend:gate",
-    );
-    if (forrige) {
-      const mangler = forrige.tjekliste.filter((t) => !t.afkrydset).length;
-      if (mangler > 0) {
-        return {
-          ok: false,
-          reason:
-            `${baseEtiket(base.nummer)} kan ikke godkendes endnu. ` +
-            `Der mangler ${mangler} af ${forrige.tjekliste.length} punkter i tjeklisten for ${baseEtiket(forrige.nummer)}.`,
-        };
-      }
-    }
-  }
+  // Samme gate som ved status Færdig: egen tjekliste, og for Base 2, 3 og
+  // Home derudover den forrige bases tjekliste.
+  const gate = await tjekGate(id, "godkendes");
+  if (!gate.ok) return gate;
 
   const idag = dagsDato();
   await withDbRetry(
