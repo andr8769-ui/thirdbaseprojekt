@@ -163,6 +163,18 @@ select:focus {
   border-radius: 99px;
 }
 
+/* Omdøb-knappen på boards i sidebaren: diskret indtil rækken har mus over
+   sig eller knappen har tastaturfokus. Inline styles kan ikke bære :hover,
+   derfor som klasse her. */
+.tb-omdoeb {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-standard);
+}
+.tb-board-row:hover .tb-omdoeb,
+.tb-omdoeb:focus-visible {
+  opacity: 1;
+}
+
 /* ==================================================================
    MOBIL (< 768px). Desktop er 100% uændret: alle regler herunder ligger
    enten som skjul-default (burger/overlay) eller inde i media query'en,
@@ -269,5 +281,10 @@ select:focus {
   /* Skjules på mobil (fx skelet-sidebaren i loading.tsx). */
   .tb-hide-mobile {
     display: none !important;
+  }
+
+  /* Touch har ingen hover — omdøb-knappen skal derfor altid være synlig. */
+  .tb-omdoeb {
+    opacity: 1;
   }
 }

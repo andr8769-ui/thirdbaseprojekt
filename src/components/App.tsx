@@ -17,6 +17,7 @@ import {
   prioOf,
   erAdmin,
   initialerAf,
+  BOARD_NAVN_MAX,
   KUNDE_FARVER,
   readableSize,
   filTilladt,
@@ -42,6 +43,7 @@ import {
   deleteAttachment,
   deleteTask,
   deleteBoard,
+  renameBoard,
   deleteCustomer,
   logout,
 } from "@/app/actions";
@@ -97,6 +99,10 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   const [filDragOver, setFilDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [redigerDeadline, setRedigerDeadline] = useState<string | null>(null);
+  // Boardet der lige nu omdøbes inline. "kilde" holder styr på HVILKEN flade der
+  // redigerer, så sidebar og header ikke begge viser et autoFocus-input samtidig
+  // for det aktive board.
+  const [redigerBoard, setRedigerBoard] = useState<{ id: string; kilde: "sidebar" | "header" } | null>(null);
   const [datoFejl, setDatoFejl] = useState<string | null>(null);
   const escRef = useRef(false);
   // Har brugeren rørt deadline-editoren? Styrer om et forudfyldt forslag må gemmes.
@@ -211,6 +217,13 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     for (const k of d.kunder) for (const b of k.boards) for (const g of b.grupper) for (const o of g.opgaver) if (o.id === taskId) return o;
     return undefined;
   };
+  const patchBoard = (d: AppData, boardId: string, navn: string): AppData => ({
+    ...d,
+    kunder: d.kunder.map((k) => ({
+      ...k,
+      boards: k.boards.map((b) => (b.id === boardId ? { ...b, navn } : b)),
+    })),
+  });
   const mapGruppe = (d: AppData, groupId: string, fn: (g: GruppeDTO) => GruppeDTO): AppData => ({
     ...d,
     kunder: d.kunder.map((k) => ({
@@ -381,6 +394,85 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
   // Slet-rettighed: admin må alt, ellers kun ejer/creator.
   const kanSlette = (creatorId: string | null | undefined) =>
     erAdmin(mig.rolle) || (!!creatorId && creatorId === mig.id);
+
+  // ---- omdøb board ----
+  // Samme rettighedsniveau som sletning af board (serveren håndhæver det samme).
+  const kanOmdoebe = (b: BoardDTO) => kanSlette(b.creatorId);
+
+  const startOmdoeb = (boardId: string, kilde: "sidebar" | "header") => {
+    escRef.current = false;
+    setRedigerBoard({ id: boardId, kilde });
+  };
+
+  /** Gem et nyt boardnavn optimistisk. Tom/uændret værdi gemmes ikke. */
+  const gemBoardNavn = (b: BoardDTO, vaerdi: string) => {
+    setRedigerBoard(null);
+    const rent = vaerdi.trim();
+    if (!rent) {
+      visToast("Navnet må ikke være tomt.");
+      return;
+    }
+    if (rent.length > BOARD_NAVN_MAX) {
+      visToast(`Navnet må højst være ${BOARD_NAVN_MAX} tegn.`);
+      return;
+    }
+    if (rent === b.navn) return; // uændret
+    // Sidebar og header læser begge b.navn fra træet, så de skifter i samme render.
+    mutate((d) => patchBoard(d, b.id, rent), () => renameBoard(b.id, rent), "Boardet kunne ikke omdøbes");
+  };
+
+  /** Inline input til boardnavn. Enter gemmer, Escape annullerer, blur gemmer.
+   *  escRef sikrer at blur efter Escape ikke gemmer alligevel. */
+  const boardNavnInput = (b: BoardDTO, stil: React.CSSProperties) => (
+    <input
+      defaultValue={b.navn}
+      autoFocus
+      maxLength={BOARD_NAVN_MAX}
+      aria-label="Boardnavn"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          escRef.current = true;
+          setRedigerBoard(null);
+        } else if (e.key === "Enter") {
+          gemBoardNavn(b, (e.target as HTMLInputElement).value);
+        }
+      }}
+      onBlur={(e) => {
+        if (escRef.current) {
+          escRef.current = false;
+          return;
+        }
+        gemBoardNavn(b, e.target.value);
+      }}
+      style={stil}
+    />
+  );
+
+  /** Diskret ⋯-knap der starter omdøbning. */
+  const omdoebKnap = (b: BoardDTO, kilde: "sidebar" | "header", farve: string) => (
+    <button
+      className="tb-omdoeb"
+      onClick={(e) => {
+        e.stopPropagation();
+        startOmdoeb(b.id, kilde);
+      }}
+      title="Omdøb board"
+      aria-label={`Omdøb ${b.navn}`}
+      style={{
+        flex: "none",
+        border: 0,
+        background: "transparent",
+        color: farve,
+        cursor: "pointer",
+        fontSize: 14,
+        lineHeight: 1,
+        padding: "4px 6px",
+      }}
+    >
+      ⋯
+    </button>
+  );
 
   function udfoerSlet() {
     if (!sletMaal) return;
@@ -633,28 +725,54 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                       </button>
                       {k.boards.map((b) => {
                         const aktiv = nav.type === "board" && nav.boardId === b.id;
+
+                        // Inline omdøbning: input erstatter rækken.
+                        if (redigerBoard?.id === b.id && redigerBoard.kilde === "sidebar") {
+                          return (
+                            <div key={b.id} style={{ padding: "2px 8px" }}>
+                              {boardNavnInput(b, {
+                                width: "100%",
+                                border: "1px solid #3355FF",
+                                background: "#232323",
+                                color: "#FFFFFF",
+                                fontSize: 12.5,
+                                padding: "5px 6px",
+                              })}
+                            </div>
+                          );
+                        }
+
                         return (
-                          <button
-                            key={b.id}
-                            onClick={() => {
-                              setNav({ type: "board", kundeId: k.id, boardId: b.id });
-                              setPanelId(null);
-                              setVisning("tabel");
-                              setDrawerOpen(false);
-                            }}
-                            style={{
-                              textAlign: "left",
-                              background: "transparent",
-                              border: 0,
-                              fontSize: 12.5,
-                              padding: "6px 8px",
-                              cursor: "pointer",
-                              color: aktiv ? "#FFFFFF" : "#9E9E9E",
-                              fontWeight: aktiv ? 600 : 400,
-                            }}
-                          >
-                            {b.navn}
-                          </button>
+                          <div key={b.id} className="tb-board-row" style={{ display: "flex", alignItems: "center" }}>
+                            <button
+                              onClick={() => {
+                                setNav({ type: "board", kundeId: k.id, boardId: b.id });
+                                setPanelId(null);
+                                setVisning("tabel");
+                                setDrawerOpen(false);
+                              }}
+                              onDoubleClick={kanOmdoebe(b) ? () => startOmdoeb(b.id, "sidebar") : undefined}
+                              title={kanOmdoebe(b) ? "Dobbeltklik for at omdøbe" : undefined}
+                              style={{
+                                flex: 1,
+                                minWidth: 0,
+                                textAlign: "left",
+                                background: "transparent",
+                                border: 0,
+                                fontSize: 12.5,
+                                padding: "6px 8px",
+                                cursor: "pointer",
+                                color: aktiv ? "#FFFFFF" : "#9E9E9E",
+                                fontWeight: aktiv ? 600 : 400,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {b.navn}
+                            </button>
+                            {kanOmdoebe(b) && omdoebKnap(b, "sidebar", "#7A7A7A")}
+                          </div>
                         );
                       })}
                       <button
@@ -760,18 +878,43 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "#9E9E9E" }}>
                 {topEyebrow}
               </div>
-              <div
-                style={{
-                  fontSize: 18,
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {topTitel}
-              </div>
+              {/* I board-visning kan boardnavnet i titlen omdøbes samme sted. */}
+              {aktivBoard && redigerBoard?.id === aktivBoard.id && redigerBoard.kilde === "header" ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.01em", color: "#9E9E9E", whiteSpace: "nowrap" }}>
+                    {aktivKunde?.navn} ·
+                  </span>
+                  {boardNavnInput(aktivBoard, {
+                    fontSize: 18,
+                    fontWeight: 600,
+                    letterSpacing: "-0.01em",
+                    border: "1px solid #3355FF",
+                    background: "#fff",
+                    color: "#181818",
+                    padding: "2px 6px",
+                    minWidth: 0,
+                    width: 240,
+                  })}
+                </div>
+              ) : (
+                <div className="tb-board-row" style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                  <span
+                    onDoubleClick={aktivBoard && kanOmdoebe(aktivBoard) ? () => startOmdoeb(aktivBoard.id, "header") : undefined}
+                    title={aktivBoard && kanOmdoebe(aktivBoard) ? "Dobbeltklik for at omdøbe boardet" : undefined}
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {topTitel}
+                  </span>
+                  {aktivBoard && kanOmdoebe(aktivBoard) && omdoebKnap(aktivBoard, "header", "#9E9E9E")}
+                </div>
+              )}
             </div>
 
             {isPending && <span className="tb-spinner" title="Gemmer…" aria-label="Gemmer" />}

@@ -41,6 +41,9 @@ export function dagsDato(nu: Date = new Date()): string {
   }).format(nu);
 }
 
+/** Maks. længde på et boardnavn (bruges både i UI og i server action). */
+export const BOARD_NAVN_MAX = 60;
+
 export const MDR = [
   "jan.", "feb.", "mar.", "apr.", "maj", "jun.",
   "jul.", "aug.", "sep.", "okt.", "nov.", "dec.",
