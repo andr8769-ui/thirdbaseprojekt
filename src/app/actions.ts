@@ -382,15 +382,16 @@ export async function createBoard(customerId: string, navn: string) {
 }
 
 /**
- * Omdøb et board. Samme rettighedsmodel som sletning af board (maaSlette:
- * admin eller boardets opretter). Validering: trimmet, ikke tomt, maks 60 tegn,
+ * Omdøb et board. Enhver logget-ind bruger må omdøbe — samme rettighedsmodel
+ * som de øvrige felt-mutationer (fx updateTaskDates), altså kun kravet om en
+ * gyldig session via actor(). Validering: trimmet, ikke tomt, maks 60 tegn,
  * og navnet skal være unikt pr. kunde.
  *
  * Returnerer { ok, reason } som de øvrige mutationer, så klienten kan vise en
  * pæn fejl og rulle den optimistiske ændring tilbage.
  */
 export async function renameBoard(boardId: string, navn: string): Promise<SletResultat> {
-  const me = await actor();
+  await actor();
   const rent = navn.trim();
   if (!rent) return { ok: false, reason: "Navnet må ikke være tomt." };
   if (rent.length > BOARD_NAVN_MAX) {
@@ -398,13 +399,10 @@ export async function renameBoard(boardId: string, navn: string): Promise<SletRe
   }
 
   const board = await withDbRetry(
-    () => prisma.board.findUnique({ where: { id: boardId }, select: { id: true, name: true, creatorId: true, customerId: true } }),
+    () => prisma.board.findUnique({ where: { id: boardId }, select: { id: true, name: true, customerId: true } }),
     "renameBoard:read",
   );
   if (!board) return { ok: false, reason: "Boardet findes ikke." };
-  if (!maaSlette(board.creatorId, me)) {
-    return { ok: false, reason: "Du har ikke rettigheder til at omdøbe dette board." };
-  }
   if (board.name === rent) return { ok: true }; // uændret
 
   // Unikt pr. kunde (case-insensitivt), så to boards hos samme kunde ikke kan

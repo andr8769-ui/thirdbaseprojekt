@@ -396,8 +396,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
     erAdmin(mig.rolle) || (!!creatorId && creatorId === mig.id);
 
   // ---- omdøb board ----
-  // Samme rettighedsniveau som sletning af board (serveren håndhæver det samme).
-  const kanOmdoebe = (b: BoardDTO) => kanSlette(b.creatorId);
+  // Enhver logget-ind bruger må omdøbe et board, så redigeringen vises for alle.
+  // Serveren kræver blot en gyldig session (samme actor()-tjek som ellers).
 
   const startOmdoeb = (boardId: string, kilde: "sidebar" | "header") => {
     escRef.current = false;
@@ -751,8 +751,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                                 setVisning("tabel");
                                 setDrawerOpen(false);
                               }}
-                              onDoubleClick={kanOmdoebe(b) ? () => startOmdoeb(b.id, "sidebar") : undefined}
-                              title={kanOmdoebe(b) ? "Dobbeltklik for at omdøbe" : undefined}
+                              onDoubleClick={() => startOmdoeb(b.id, "sidebar")}
+                              title="Dobbeltklik for at omdøbe"
                               style={{
                                 flex: 1,
                                 minWidth: 0,
@@ -771,7 +771,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                             >
                               {b.navn}
                             </button>
-                            {kanOmdoebe(b) && omdoebKnap(b, "sidebar", "#7A7A7A")}
+                            {omdoebKnap(b, "sidebar", "#7A7A7A")}
                           </div>
                         );
                       })}
@@ -899,8 +899,8 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
               ) : (
                 <div className="tb-board-row" style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
                   <span
-                    onDoubleClick={aktivBoard && kanOmdoebe(aktivBoard) ? () => startOmdoeb(aktivBoard.id, "header") : undefined}
-                    title={aktivBoard && kanOmdoebe(aktivBoard) ? "Dobbeltklik for at omdøbe boardet" : undefined}
+                    onDoubleClick={aktivBoard ? () => startOmdoeb(aktivBoard.id, "header") : undefined}
+                    title={aktivBoard ? "Dobbeltklik for at omdøbe boardet" : undefined}
                     style={{
                       fontSize: 18,
                       fontWeight: 600,
@@ -912,7 +912,7 @@ export default function App({ data: initialData, initialTaskId }: { data: AppDat
                   >
                     {topTitel}
                   </span>
-                  {aktivBoard && kanOmdoebe(aktivBoard) && omdoebKnap(aktivBoard, "header", "#9E9E9E")}
+                  {aktivBoard && omdoebKnap(aktivBoard, "header", "#9E9E9E")}
                 </div>
               )}
             </div>
