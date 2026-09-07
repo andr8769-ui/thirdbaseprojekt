@@ -34,6 +34,9 @@ model User {
   createdBoards       Board[]        @relation("BoardCreator")
   createdTasks        Task[]         @relation("TaskCreator")
   uploadedAttachments Attachment[]   @relation("AttachmentUploader")
+  ansvarligProjekter  ClientProject[] @relation("ProjektAnsvarlig")
+  godkendteBaser      ProjectBase[]   @relation("BaseGodkender")
+  afkrydsedePunkter   ChecklistItem[] @relation("ChecklistAfkrydser")
 }
 
 model Customer {
@@ -48,6 +51,7 @@ model Customer {
 
   creator User?   @relation("CustomerCreator", fields: [creatorId], references: [id], onDelete: SetNull)
   boards  Board[]
+  clientProjects ClientProject[]
 }
 
 model Board {
@@ -182,4 +186,327 @@ model Notification {
 
   @@index([userId])
   @@index([taskId])
+}
+
+// ==================================================================
+// The Thirdbase Model — kundeprojekt ud fra fast skabelon.
+// Rent additivt. Alle fremmednøgler ligger på de nye tabeller; de
+// eksisterende tabeller får ingen nye kolonner.
+// ==================================================================
+
+model ClientProject {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Sektion 0 · Projektstamdata
+  kundeNavn            String
+  cvr                  String?
+  kontaktpersonNavn    String?
+  kontaktpersonTitel   String?
+  kontaktpersonMail    String?
+  kontaktpersonTelefon String?
+  deltagere            String?
+  projektstart         String? // 'YYYY-MM-DD'
+  forventetAfslutning  String? // 'YYYY-MM-DD'
+  nuvaerendeBase       String  @default("1") // 1, 2, 3 eller Home
+  samletStatus         String  @default("Ikke startet")
+  kadence              String?
+  hubspotPortal        String?
+  projektmappe         String?
+
+  // Formål og forventet resultat
+  formaal String?
+
+  // Kundens udgangspunkt
+  udgangspunktKanaler        String?
+  udgangspunktLeadsPrMaaned  String?
+  udgangspunktSalgsproces    String?
+  udgangspunktCrmModenhed    String?
+  udgangspunktAutomatisering String?
+  udgangspunktHvorTabes      String?
+
+  // Vigtigste fund fra afdækningen
+  vigtigsteFund String?
+
+  customerId         String?
+  projektansvarligId String?
+  opretterId         String?
+
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  projektansvarlig User?     @relation("ProjektAnsvarlig", fields: [projektansvarligId], references: [id], onDelete: SetNull)
+
+  baser        ProjectBase[]
+  afdaekning   DiscoveryActivity[]
+  risici       ProjectRisk[]
+  beslutninger ProjectDecision[]
+  aendringer   ChangeLogEntry[]
+  moeder       StatusMeeting[]
+  ejerskab     OwnershipArea[]
+  reviews      PerformanceReview[]
+
+  @@index([customerId])
+  @@index([projektansvarligId])
+}
+
+model ProjectBase {
+  id             String  @id @default(cuid())
+  nummer         Int // 1, 2, 3 eller 4 (Home)
+  navn           String
+  status         String  @default("Ikke startet")
+  ansvarlig      String?
+  startdato      String? // 'YYYY-MM-DD'
+  maaldato       String? // 'YYYY-MM-DD'
+  godkendtDato   String? // 'YYYY-MM-DD'
+  godkendtAfId   String?
+  godkendtAfNavn String? // historisk navn, bevares hvis brugeren slettes
+  projectId      String
+
+  project    ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  godkendtAf User?         @relation("BaseGodkender", fields: [godkendtAfId], references: [id], onDelete: SetNull)
+
+  steps            BaseStep[]
+  tjekliste        ChecklistItem[]
+  kpier            Kpi[]
+  kanaler          MarketingChannel[]
+  faser            PipelineStage[]
+  scoringRegler    LeadScoringRule[]
+  automatiseringer Automation[]
+
+  @@unique([projectId, nummer])
+  @@index([projectId])
+}
+
+model BaseStep {
+  id          String  @id @default(cuid())
+  kode        String // fx "1.1"
+  titel       String
+  beskrivelse String  @default("")
+  aktiviteter String? // konkrete aktiviteter for denne kunde
+  ejer        String?
+  deadline    String? // 'YYYY-MM-DD'
+  status      String  @default("Ikke startet")
+  position    Int     @default(0)
+  baseId      String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model ChecklistItem {
+  id              String    @id @default(cuid())
+  tekst           String
+  afkrydset       Boolean   @default(false)
+  afkrydsetDato   DateTime?
+  afkrydsetAfId   String?
+  afkrydsetAfNavn String?
+  position        Int       @default(0)
+  baseId          String
+
+  base        ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  afkrydsetAf User?       @relation("ChecklistAfkrydser", fields: [afkrydsetAfId], references: [id], onDelete: SetNull)
+
+  @@index([baseId])
+}
+
+model Kpi {
+  id          String  @id @default(cuid())
+  navn        String
+  beskrivelse String  @default("")
+  baseline    String?
+  maal        String?
+  aktuel      String?
+  maaledato   String? // 'YYYY-MM-DD'
+  kilde       String?
+  position    Int     @default(0)
+  baseId      String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model DiscoveryActivity {
+  id        String  @id @default(cuid())
+  kode      String // A1 til A6
+  aktivitet String
+  ejer      String?
+  deadline  String? // 'YYYY-MM-DD'
+  status    String  @default("Ikke startet")
+  noter     String?
+  position  Int     @default(0)
+  projectId String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model MarketingChannel {
+  id           String  @id @default(cuid())
+  kanal        String
+  aktiv        Boolean @default(false)
+  budget       String?
+  landingsside String?
+  sporingSatOp Boolean @default(false)
+  ansvarlig    String?
+  position     Int     @default(0)
+  baseId       String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model PipelineStage {
+  id             String  @id @default(cuid())
+  trin           Int
+  fase           String
+  kriterie       String?
+  ejer           String?
+  automatisering String?
+  baseId         String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model LeadScoringRule {
+  id       String  @id @default(cuid())
+  kriterie String  @default("")
+  type     String // Adfærd eller Profil
+  point    String?
+  note     String?
+  position Int     @default(0)
+  baseId   String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model Automation {
+  id        String  @id @default(cuid())
+  navn      String  @default("")
+  trigger   String?
+  handling  String?
+  vaerktoej String?
+  status    String  @default("Ikke startet")
+  ejer      String?
+  position  Int     @default(0)
+  baseId    String
+
+  base ProjectBase @relation(fields: [baseId], references: [id], onDelete: Cascade)
+
+  @@index([baseId])
+}
+
+model OwnershipArea {
+  id               String  @id @default(cuid())
+  omraade          String
+  ejerHosKunden    String?
+  ejerHosThirdbase String?
+  gennemgang       String?
+  position         Int     @default(0)
+  projectId        String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ChangeLogEntry {
+  id              String   @id @default(cuid())
+  version         String
+  dato            String? // 'YYYY-MM-DD'
+  hvadBlevAendret String   @default("")
+  hvorfor         String?
+  aendretAf       String?
+  resultat        String?
+  createdAt       DateTime @default(now())
+  projectId       String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model PerformanceReview {
+  id                     String   @id @default(cuid())
+  dato                   String? // 'YYYY-MM-DD'
+  deltagere              String?
+  vigtigsteFund          String?
+  besluttedeOptimeringer String?
+  naesteReview           String? // 'YYYY-MM-DD'
+  createdAt              DateTime @default(now())
+  projectId              String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectRisk {
+  id          String   @id @default(cuid())
+  kode        String // R1, R2 ...
+  beskrivelse String   @default("")
+  base        String?
+  konsekvens  String?
+  haandtering String?
+  ejer        String?
+  status      String   @default("Åben")
+  createdAt   DateTime @default(now())
+  projectId   String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model ProjectDecision {
+  id          String   @id @default(cuid())
+  dato        String? // 'YYYY-MM-DD'
+  beslutning  String   @default("")
+  baggrund    String?
+  besluttetAf String?
+  createdAt   DateTime @default(now())
+  projectId   String
+
+  project ClientProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model StatusMeeting {
+  id             String   @id @default(cuid())
+  dato           String? // 'YYYY-MM-DD'
+  deltagere      String?
+  nuvaerendeBase String?
+  sidenSidst     String?
+  kpiBevaegelse  String?
+  blokeringer    String?
+  beslutninger   String?
+  naesteMoede    String? // 'YYYY-MM-DD'
+  createdAt      DateTime @default(now())
+  projectId      String
+
+  project ClientProject         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  skridt  StatusMeetingAction[]
+
+  @@index([projectId])
+}
+
+model StatusMeetingAction {
+  id        String  @id @default(cuid())
+  opgave    String  @default("")
+  ejer      String?
+  deadline  String? // 'YYYY-MM-DD'
+  position  Int     @default(0)
+  meetingId String
+
+  meeting StatusMeeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
 }
